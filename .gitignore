@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# production
+.next/
+out/
+dist/
+.turbo/
+
+# misc
+.DS_Store
+.vercel/
+*.log
+
+# env
+.env
+.env.*
