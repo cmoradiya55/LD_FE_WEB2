@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Navigation from '@/components/Navigation';
+import Header from '@/components/Header/Header';
+import Sidebar from '@/components/Sidebar/Sidebar';
+import { QueryProvider } from '@/components/providers/QueryProvider';
+import { FavoritesProvider } from '@/components/providers/FavoritesProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,10 +21,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navigation />
-        <main className="min-h-screen pb-20 md:pb-8">
-          {children}
-        </main>
+        <QueryProvider>
+          <FavoritesProvider>
+            <Header />
+            <Sidebar />
+            <main className="min-h-screen md:ml-16">
+              {children}
+            </main>
+          </FavoritesProvider>
+        </QueryProvider>
       </body>
     </html>
   );
