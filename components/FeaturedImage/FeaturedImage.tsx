@@ -16,6 +16,7 @@ interface FeaturedImageProps {
     detailOptions?: DetailOptionData[];
     wrapperClassName?: string;
     imageClassName?: string;
+    onImageClick?: () => void;
 }
 
 type DetailOption = {
@@ -53,6 +54,7 @@ const FeaturedImage = ({
     detailOptions: detailOptionsProp,
     wrapperClassName,
     imageClassName,
+    onImageClick,
 }: FeaturedImageProps) => {
     const detailOptions = normalizeDetailOptions(detailOptionsProp, src);
     const slideList = detailOptions.flatMap((option, optionIndex) =>
@@ -87,7 +89,6 @@ const FeaturedImage = ({
 
     const canSlide = slides.length > 1;
 
-    // Touch swipe refs for mobile image navigation
     const touchStartX = useRef<number | null>(null);
     const touchEndX = useRef<number | null>(null);
 
@@ -106,7 +107,6 @@ const FeaturedImage = ({
         }
     };
 
-    // Touch handlers for swipe navigation on small screens
     const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
         if (e.touches && e.touches.length > 0) {
             touchStartX.current = e.touches[0].clientX;
@@ -123,14 +123,12 @@ const FeaturedImage = ({
     const handleTouchEnd = () => {
         if (touchStartX.current === null || touchEndX.current === null) return;
         const deltaX = touchStartX.current - touchEndX.current;
-        const swipeThreshold = 40; // px
+        const swipeThreshold = 40;
 
         if (Math.abs(deltaX) > swipeThreshold) {
             if (deltaX > 0) {
-                // swipe left -> next image
                 handleNext();
             } else {
-                // swipe right -> previous image
                 handlePrev();
             }
         }
@@ -147,6 +145,7 @@ const FeaturedImage = ({
                     <div className="relative w-full sm:w-[90%] h-72 sm:h-64 md:h-80 lg:h-96 xl:h-[440px] mx-auto">
                         <div
                             className="relative w-full h-full bg-transparent rounded-[28px]"
+                            onClick={onImageClick}
                             onTouchStart={handleTouchStart}
                             onTouchMove={handleTouchMove}
                             onTouchEnd={handleTouchEnd}
@@ -166,7 +165,10 @@ const FeaturedImage = ({
                                 <>
                                     <button
                                         type="button"
-                                        onClick={handlePrev}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePrev();
+                                        }}
                                         aria-label="View previous image"
                                         className="hidden md:flex absolute -left-5 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-0.5 text-white shadow-lg transition hover:bg-black/60"
                                     >
@@ -174,7 +176,10 @@ const FeaturedImage = ({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={handleNext}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleNext();
+                                        }}
                                         aria-label="View next image"
                                         className="hidden md:flex absolute -right-5 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-0.5 text-white shadow-lg transition hover:bg-black/60"
                                     >
@@ -208,7 +213,7 @@ const FeaturedImage = ({
                                     <span
                                         className={cn(
                                             'relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 bg-gradient-to-b from-white/10 to-white/5 transition-all duration-300',
-                                            isActive ? 'border-blue-600/80 shadow-blue-500/80' : 'border-gray-500/50',
+                                            isActive ? 'border-blue-600 shadow-blue-500' : 'border-gray-500/50',
                                         )}
                                     >
                                         {showIconPreview && Icon ? (

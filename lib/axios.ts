@@ -3,6 +3,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { getToken, clearAuthData } from './storage';
 
 const createAxiosInstance = (baseURL: string): AxiosInstance => {
   const instance = axios.create({
@@ -16,10 +17,10 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
   instance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token') || 'null';
-        if (token) {
+        const token = getToken();
+        if (token && token !== 'null') {
           config.headers = config.headers || {};
-          config.headers['x-auth-token'] = token;
+          config.headers['Authorization'] = `Bearer ${token}`;
         }
       }
       return config;
@@ -41,8 +42,16 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
           case 401:
             console.error('Unauthorized! Please log in again.');
             if (typeof window !== 'undefined') {
-              localStorage.removeItem('token');
-              localStorage.removeItem('userData');
+              // Clear auth data
+              // clearAuthData();
+              
+              // Dispatch custom event to notify AuthProvider
+              // window.dispatchEvent(new CustomEvent('auth:logout'));
+              
+              // Redirect to login if not already there
+              // if (window.location.pathname !== '/login') {
+              //   window.location.href = '/login';
+              // }
             }
             break;
 
@@ -94,7 +103,7 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
 
 // Default instance – change base URL here if needed
 const axiosInstance = createAxiosInstance(
-  process.env.NEXT_BACKEND_BASE_URL || 'http://localhost:8000/api/v1'
+  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || ''
 );
 
 export default axiosInstance; 

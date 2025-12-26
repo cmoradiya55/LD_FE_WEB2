@@ -13,6 +13,12 @@ export interface FeatureCategory {
     features: string[];
 }
 
+export interface FeatureListItem {
+    key: string;
+    name: string;
+    value?: string | number | boolean | null;
+}
+
 export interface SpecSectionRow {
     label: string;
     value: string;
@@ -24,11 +30,62 @@ export interface SpecSection {
     rows: SpecSectionRow[];
 }
 
+// Shared enums for filters and listings
+export enum UsedCarSortOption {
+    NEWEST = 2,
+    PRICE_LOW_TO_HIGH = 3,
+    PRICE_HIGH_TO_LOW = 4,
+    KM_LOW_TO_HIGH = 5,
+    MODEL_NEW_TO_OLD = 6,
+}
+
+export enum SafetyRating {
+    ONE = 1,
+    TWO = 2,
+    THREE = 3,
+    FOUR = 4,
+    FIVE = 5,
+}
+
+export enum FuelType {
+    PETROL = 1,
+    DIESEL = 2,
+    CNG = 3,
+    ELECTRIC = 4,
+    HYBRID = 5,
+}
+
+export enum BodyType {
+    SEDAN = 1,
+    SUB_COMPACT_SUV = 2,
+    SUV = 3,
+    HATCHBACK = 4,
+    MUV = 5,
+    COUPE = 6,
+    CONVERTIBLE = 7,
+    PICKUP = 8,
+    WAGON = 9,
+}
+
+export enum TransmissionType {
+    MANUAL = 1,
+    AUTOMATIC = 2,
+}
+
+export enum OwnerType {
+    FIRST = 1,
+    SECOND = 2,
+    THIRD = 3,
+    FOURTH = 4,
+}
+
 export interface CarData {
     id: string;
+    slug?: string;
     name: string;
     year: number;
     price: string;
+    final_price?: number | null;
     image: string; // primary image used across the app
     detailOptions: DetailOptionData[];
     fuelType: string;
@@ -36,20 +93,30 @@ export interface CarData {
     kmsDriven: string;
     location: string;
     owner: string;
+    ownerType?: number | string;
     registrationYear: string;
+    registrationNumber?: string;
     insurance: string;
     seats: string;
     rto: string;
     engineDisplacement: string;
     yearOfManufacture: string;
+    mileageKmpl?: number;
+    displacementCc?: number;
+    powerBhp?: number;
+    torqueNm?: number;
+    numberOfGears?: number;
+    seatingCapacity?: number;
+    fuelTankCapacityLiters?: number | null;
+    featureList?: FeatureListItem[];
     features?: FeatureCategory[];
     emi?: string;
     newCarPrice?: string;
     views?: string;
-    badgeType: 'assured' | 'private'; // 'assured' for LINK DRIVE Assured, 'private' for Private Seller
+    badgeType: 'assured' | 'private';
+    isWishlisted?: boolean;
 }
 
-// Bid interface for manage bids functionality
 export interface Bid {
     id: string;
     buyerName: string;

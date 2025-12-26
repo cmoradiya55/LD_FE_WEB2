@@ -29,7 +29,7 @@ type ButtonNativeProps = ButtonBaseProps &
 export type ButtonProps = ButtonLinkProps | ButtonNativeProps;
 
 const baseClasses =
-  'inline-flex items-center justify-center rounded-xl font-semibold text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-400 disabled:opacity-50 disabled:pointer-events-none shadow-sm hover:shadow-md active:scale-[0.98]';
+  'inline-flex items-center justify-center rounded-xl font-semibold text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-400 disabled:opacity-50 disabled:pointer-events-none shadow-sm hover:shadow-md active:scale-[0.98]';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -45,12 +45,12 @@ const cn = (...classes: Array<string | false | undefined | null>) =>
 
 export const buttonVariants = ({
   variant = 'primary',
-  size = 'md',
+  size = 'xs',
   className,
 }: {
   variant?: ButtonVariant;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 } = {}) => cn(baseClasses, variantClasses[variant], className);
 
 export const Button = forwardRef<

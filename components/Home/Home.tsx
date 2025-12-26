@@ -1,12 +1,159 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
-import { sampleCars } from '@/lib/carData';
-import { cities, brands, fuelTypes } from '@/lib/carData';
+import { CarData } from '@/lib/carData';
 import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import Hero from '@/components/Hero/Hero';
+import { useQuery } from '@tanstack/react-query';
+import { fetchListings } from '@/lib/auth';
+import { getUser } from '@/lib/storage';
+
+type ApiImage = {
+  id: number;
+  imageSubtype?: number;
+  imageUrl: string;
+  title?: string;
+};
+
+type ApiImageGroup = {
+  type: number;
+  typeName: string;
+  images: ApiImage[];
+};
+
+type ApiFeature = {
+  id: number;
+  name: string;
+  displayName: string;
+  valueType: number;
+  featureValue: string | number | boolean | null;
+};
+
+type ApiListing = {
+  id: number;
+  slug?: string;
+  displayName: string;
+  variantName?: string;
+  image?: string | null;
+  areaName?: string;
+  cityName?: string;
+  registrationYear?: number;
+  kmDriven?: number | null;
+  registrationNumber?: string;
+  ownerType?: number;
+  rtoCode?: string;
+  final_price?: number | null;
+  price?: number | null;
+  isWishlisted?: boolean;
+  transmissionType?: string;
+  fuelType?: string;
+  displacementCc?: number;
+  powerBhp?: number;
+  torqueNm?: number;
+  seatingCapacity?: number;
+  mileageKmpl?: number;
+  numberOfGears?: number;
+  fuelTankCapacityLiters?: number | null;
+  features?: ApiFeature[];
+  images?: ApiImageGroup[];
+};
+
+const placeholderImage =
+  'https://via.placeholder.com/640x360.png?text=Car+image+coming+soon';
+
+const mapApiListingToCarData = (item: ApiListing): CarData => {
+  // Extract primary image from images array
+  const primaryImage =
+    (item.image ??
+      item.images?.find((group) => group.images?.length)?.images?.[0]?.imageUrl) ||
+    placeholderImage;
+
+  // Map images to detailOptions format
+  const detailOptions =
+    item.images
+      ?.map((group) => ({
+        label: group.typeName || 'Images',
+        images: (group.images || []).map((img) => img.imageUrl).filter(Boolean),
+      }))
+      .filter((opt) => opt.images.length > 0) || [];
+
+  const name = `${item.displayName}${item.variantName ? ` ${item.variantName}` : ''}`.trim();
+  const year = item.registrationYear ?? new Date().getFullYear();
+  const resolvedPrice =
+    typeof item.final_price === 'number'
+      ? item.final_price
+      : typeof item.price === 'number'
+        ? item.price
+        : null;
+
+  const final_price = resolvedPrice;
+  const price =
+    resolvedPrice !== null
+      ? `${resolvedPrice.toLocaleString('en-IN')}`
+      : '0';
+
+  const areaCityLocation =
+    item.areaName && item.cityName
+      ? `${item.areaName}, ${item.cityName}`
+      : item.cityName ?? item.areaName ?? '';
+
+  const base: CarData = {
+    id: item.slug ?? String(item.id),
+    slug: item.slug,
+    name,
+    year,
+    price,
+    final_price,
+    image: primaryImage,
+    detailOptions,
+    fuelType: item.fuelType || '—',
+    transmission: item.transmissionType || '—',
+    kmsDriven: item.kmDriven ? `${item.kmDriven.toLocaleString()} km` : '—',
+    location: areaCityLocation || item.rtoCode || '—',
+    owner: item.ownerType ? `Owner Type ${item.ownerType}` : '—',
+    registrationYear: item.registrationYear ? String(item.registrationYear) : String(year),
+    registrationNumber: item.registrationNumber,
+    insurance: '—',
+    seats: item.seatingCapacity ? `${item.seatingCapacity} Seats` : '—',
+    rto: item.rtoCode || areaCityLocation || '—',
+    engineDisplacement: item.displacementCc ? `${item.displacementCc} cc` : '—',
+    yearOfManufacture: item.registrationYear ? String(item.registrationYear) : String(year),
+    mileageKmpl: item.mileageKmpl ?? undefined,
+    displacementCc: item.displacementCc ?? undefined,
+    powerBhp: item.powerBhp ?? undefined,
+    torqueNm: item.torqueNm ?? undefined,
+    numberOfGears: item.numberOfGears ?? undefined,
+    seatingCapacity: item.seatingCapacity ?? undefined,
+    fuelTankCapacityLiters: item.fuelTankCapacityLiters ?? null,
+    featureList:
+      item.features?.map((f) => ({
+        name: f.displayName || f.name,
+        value: f.featureValue === null || typeof f.featureValue === 'undefined' ? null : f.featureValue,
+        key: f.name || f.displayName || String(f.id),
+      })) || [],
+    badgeType: 'assured',
+  };
+
+  const enriched: any = {
+    ...base,
+    displayName: item.displayName,
+    variantName: item.variantName,
+    ownerType: item.ownerType,
+    areaName: item.areaName,
+    cityName: item.cityName,
+    kmDriven: item.kmDriven ?? undefined,
+    final_price,
+    price: price,
+    fuelType: item.fuelType,
+    transmissionType: item.transmissionType,
+    listingId: item.id,
+    isWishlisted: item.isWishlisted ?? base.isWishlisted ?? false,
+  };
+
+  return enriched as CarData;
+};
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,28 +167,79 @@ export default function Home() {
     maxYear: '',
   });
 
-  // Helper function to parse price string (e.g., "₹5.57 lakh" -> 557000)
-  const parsePrice = (priceStr: string): number => {
-    const cleaned = priceStr.replace(/[₹,\s]/g, '').toLowerCase();
-    const lakhMatch = cleaned.match(/([\d.]+)\s*lakh/);
-    if (lakhMatch) {
-      return parseFloat(lakhMatch[1]) * 100000;
-    }
-    const croreMatch = cleaned.match(/([\d.]+)\s*crore/);
-    if (croreMatch) {
-      return parseFloat(croreMatch[1]) * 10000000;
-    }
-    return parseFloat(cleaned) || 0;
-  };
+  const user = getUser();
+  const userCityData = useMemo(() => ({
+    cityId: user?.cityId || null,
+    isCityIncluded: user?.isCityIncluded ?? null,
+  }), [user?.cityId, user?.isCityIncluded]);
 
-  const filteredCars = sampleCars.filter((car) => {
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (filters.city) params.append('rto', filters.city);
+    if (filters.brand) params.append('brand', filters.brand);
+    if (filters.fuelType) params.append('fuelType', filters.fuelType);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+    if (filters.maxYear) params.append('maxYear', filters.maxYear);
+    
+    if (userCityData.cityId) {
+      params.append('cityId', String(userCityData.cityId));
+      const isCityIncluded = userCityData.isCityIncluded !== null && userCityData.isCityIncluded !== undefined 
+        ? userCityData.isCityIncluded 
+        : true;
+      params.append('isCityIncluded', String(isCityIncluded));
+    }
+    
+    return params.toString();
+  }, [searchQuery, filters, userCityData.cityId, userCityData.isCityIncluded]);
+
+  const { data: listingsResponse, isLoading, error } = useQuery({
+    queryKey: ['GET_CAR_LISTINGS', queryParams, userCityData.cityId, userCityData.isCityIncluded],
+    queryFn: async () => {
+      try {
+        const response = await fetchListings(queryParams);
+        if (response.code === 200) {
+          return response.data;
+        }
+        return [];
+      } catch (error) {
+        console.error("Error fetching car listings:", error);
+        throw error;
+      }
+    },
+    retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    enabled: true,
+  });
+
+  const cars: CarData[] = useMemo(() => {
+    if (!listingsResponse || !Array.isArray(listingsResponse)) {
+      return [];
+    }
+    return listingsResponse.map(mapApiListingToCarData);
+  }, [listingsResponse]);
+
+  const { cities, brands, fuelTypes } = useMemo(() => {
+    const uniqueCities = Array.from(new Set(cars.map(car => car.rto).filter(Boolean))).sort();
+    const uniqueBrands = Array.from(new Set(cars.map(car => car.name.split(' ')[0]).filter(Boolean))).sort();
+    const uniqueFuelTypes = Array.from(new Set(cars.map(car => car.fuelType).filter(Boolean))).sort();
+    return {
+      cities: uniqueCities,
+      brands: uniqueBrands,
+      fuelTypes: uniqueFuelTypes,
+    };
+  }, [cars]);
+
+  const filteredCars = cars.filter((car) => {
     const matchesSearch =
       car.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCity = !filters.city || car.location.toLowerCase().includes(filters.city.toLowerCase());
     const matchesBrand = !filters.brand || car.name.toLowerCase().includes(filters.brand.toLowerCase());
     const matchesFuel = !filters.fuelType || car.fuelType === filters.fuelType;
-    const carPrice = parsePrice(car.price);
+    const carPrice = car.final_price ?? 0;
     const matchesMinPrice = !filters.minPrice || carPrice >= parseInt(filters.minPrice);
     const matchesMaxPrice = !filters.maxPrice || carPrice <= parseInt(filters.maxPrice);
     const matchesYear = !filters.maxYear || car.year <= parseInt(filters.maxYear);
@@ -64,7 +262,7 @@ export default function Home() {
   const activeFiltersCount = Object.values(filters).filter(v => v !== '').length;
 
   return (
-    <div className="max-w-7xl mx-auto pb-6 space-y-6">
+    <div className="max-w-7xl mx-auto pb-6 px-6 pt-2 space-y-6">
       {/* Hero Section */}
       <Hero />
 
@@ -224,19 +422,38 @@ export default function Home() {
         </div>
       )}
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12 text-gray-600">
+          Loading cars...
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="text-center py-12 text-red-600">
+          {error instanceof Error ? error.message : 'Failed to load cars. Please try again later.'}
+        </div>
+      )}
+
       {/* Results Count */}
-      <div className="text-sm text-gray-600">
-        Showing {filteredCars.length} {filteredCars.length === 1 ? 'car' : 'cars'}
-      </div>
+      {!isLoading && !error && (
+        <div className="text-sm text-gray-600">
+          Showing {filteredCars.length} {filteredCars.length === 1 ? 'car' : 'cars'}
+        </div>
+      )}
 
       {/* Car Grid */}
-      {filteredCars.length > 0 ? (
+      {!isLoading && !error && filteredCars.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCars.map((car) => (
             <CarCard key={car.id} car={car} />
           ))}
         </div>
-      ) : (
+      )}
+
+      {/* No Results */}
+      {!isLoading && !error && filteredCars.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <Search className="w-16 h-16 mx-auto" />

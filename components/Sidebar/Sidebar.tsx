@@ -11,7 +11,7 @@ import {
 
 const navItems = [
   { href: '/', label: 'Browse', icon: Home },
-  { href: '/my-listings', label: 'My Listings', icon: Car },
+  { href: '/listings', label: 'Cars Listing', icon: Car },
   { href: '/favorites', label: 'Favorites', icon: Heart },
   { href: '/dashboard', label: 'Dashboard', icon: User },
 ];

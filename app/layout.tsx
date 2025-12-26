@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/Header/Header';
-import Sidebar from '@/components/Sidebar/Sidebar';
 import { QueryProvider } from '@/components/providers/QueryProvider';
-import { FavoritesProvider } from '@/components/providers/FavoritesProvider';
+import { AuthProvider } from '@/components/providers/AuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,13 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <QueryProvider>
-          <FavoritesProvider>
-            <Header />
-            <Sidebar />
-            <main className="min-h-screen md:ml-16">
+          <AuthProvider>
               {children}
-            </main>
-          </FavoritesProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
