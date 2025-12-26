@@ -1,3 +1,56 @@
+const colorVar = (token) => `var(${token})`
+
+const statusPalette = ({ soft, border, main, dark }) => ({
+  50: colorVar(soft),
+  100: colorVar(soft),
+  200: colorVar(border ?? soft),
+  300: colorVar(border ?? soft),
+  500: colorVar(main),
+  600: colorVar(main),
+  700: colorVar(dark ?? main),
+  800: colorVar(dark ?? main),
+})
+
+const primaryPalette = {
+  50: colorVar('--color-primary-50'),
+  100: colorVar('--color-primary-100'),
+  200: colorVar('--color-primary-200'),
+  300: colorVar('--color-primary-light'),
+  400: colorVar('--color-primary-light'),
+  500: colorVar('--color-primary'),
+  600: colorVar('--color-primary'),
+  700: colorVar('--color-primary-dark'),
+  DEFAULT: colorVar('--color-primary'),
+}
+
+const grayPalette = {
+  50: colorVar('--color-background-secondary'),
+  100: colorVar('--color-hover-bg'),
+  200: colorVar('--color-border'),
+  300: colorVar('--color-border'),
+  400: colorVar('--color-text-tertiary'),
+  500: colorVar('--color-text-secondary'),
+  600: colorVar('--color-text-secondary-strong'),
+  700: colorVar('--color-text'),
+  800: colorVar('--color-text'),
+  900: colorVar('--color-text'),
+}
+
+const bluePalette = {
+  50: colorVar('--color-secondary-50'),
+  100: colorVar('--color-secondary-100'),
+  200: colorVar('--color-secondary-200'),
+  500: colorVar('--color-secondary'),
+  600: colorVar('--color-secondary-dark'),
+  800: colorVar('--color-accent'),
+}
+
+const purplePalette = {
+  100: colorVar('--color-accent-soft'),
+  500: colorVar('--color-accent'),
+  600: colorVar('--color-accent'),
+}
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -8,18 +61,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-        },
+        gray: grayPalette,
+        primary: primaryPalette,
+        teal: primaryPalette,
+        blue: bluePalette,
+        purple: purplePalette,
+        red: statusPalette({
+          soft: '--color-error-soft',
+          border: '--color-error-border',
+          main: '--color-error',
+          dark: '--color-error-dark',
+        }),
+        green: statusPalette({
+          soft: '--color-success-soft',
+          border: '--color-success-border',
+          main: '--color-success',
+          dark: '--color-success-dark',
+        }),
+        yellow: statusPalette({
+          soft: '--color-warning-soft',
+          border: '--color-warning-border',
+          main: '--color-warning',
+          dark: '--color-warning-dark',
+        }),
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in',

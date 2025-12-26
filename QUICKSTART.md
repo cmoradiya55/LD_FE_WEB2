@@ -166,11 +166,9 @@ vercel
 
 ## 🎨 UI Components
 
-All reusable styles are in `app/globals.css`:
+Reusable styling helpers live in `app/globals.css` and our `Button` component:
 
-- `.btn-primary` - Primary action button
-- `.btn-secondary` - Secondary action button
-- `.btn-ghost` - Minimal button
+- `Button` (`components/Button/Button.tsx`) - primary/secondary/ghost variants
 - `.input-field` - Form input styling
 - `.card` - Container card
 - `.badge-*` - Status badges
