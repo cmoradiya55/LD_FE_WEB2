@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getToken, getUser, clearAuthData, setToken, setUser } from '@/lib/storage';
+import { clearAuthData, setStorageItem, getStorageItem } from '@/lib/storage';
 import { sendOtp, verifyOtp } from '@/lib/auth';
 import { generateUUID } from '@/lib/uuid';
 
@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        const storedToken = getToken();
-        const storedUser = getUser();
+        const storedToken = getStorageItem('token');
+        const storedUser = JSON.parse(getStorageItem('user') || '{}');
 
         if (storedToken && storedUser) {
           setTokenState(storedToken);
@@ -137,8 +137,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await verifyOtp(payload);
       
       if (res.code === 200 && res.data?.accessToken) {
+        console.log('res.data', res.data);
+        
         const accessToken = res.data.accessToken;
         const userData = res.data;
+        const city = userData.cityId;
 
         // If cityId is null or undefined, set a flag to show the location modal after login
         // If cityId exists, it will be saved directly with userData
@@ -154,8 +157,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Store in localStorage
-        setToken(accessToken);
-        setUser(userData);
+        setStorageItem('user', JSON.stringify(userData));
+        setStorageItem('token', accessToken);
+        setStorageItem('city', city);
 
         // Update state
         setTokenState(accessToken);
@@ -187,9 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const checkAuth = useCallback(() => {
-    const storedToken = getToken();
-    const storedUser = getUser();
-    
+    const storedToken = getStorageItem('token');
+    const storedUser = JSON.parse(getStorageItem('user') || '{}');
+
     if (storedToken && storedUser) {
       setTokenState(storedToken);
       setUserState(storedUser);

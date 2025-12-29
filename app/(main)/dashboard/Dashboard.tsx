@@ -7,7 +7,7 @@ import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
 import { ListingCar, CarData } from '@/lib/carData';
 import { fetchMyUsedCarList, fetchMyUsedCarDetails, getWishlistCount, logout as logoutApi } from '@/lib/auth';
-import { getUser } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { generateUUID } from '@/lib/uuid';
 import {
@@ -71,13 +71,13 @@ export default function Dashboard() {
 
   // Get profile data from localStorage
   useEffect(() => {
-    const userData = getUser();
+    const userData = JSON.parse(getStorageItem('user') || '{}');
     setProfile(userData);
     setIsLoadingProfile(false);
 
     // Listen for storage changes to update profile when it's changed
     const handleStorageChange = () => {
-      const updatedUser = getUser();
+      const updatedUser = JSON.parse(getStorageItem('user') || '{}');
       setProfile(updatedUser);
     };
 

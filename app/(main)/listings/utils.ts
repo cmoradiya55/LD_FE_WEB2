@@ -1,7 +1,7 @@
 'use client';
 
 import { FilterState } from './FilterSidebar';
-import { getUser } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 
 /**
  * Converts a FilterState object into a URL query string.
@@ -43,7 +43,7 @@ export const buildQueryStringFromFilters = (filters: FilterState): string => {
 
   // Add cityId and isCityIncluded from localStorage user data
   // If cityId is provided, isCityIncluded is required by the API
-  const user = getUser();
+  const user = JSON.parse(getStorageItem('user') || '{}');
   if (user) {
     if (user.cityId) {
       params.push(`cityId=${encodeURIComponent(user.cityId)}`);

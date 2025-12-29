@@ -8,7 +8,7 @@ import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import Hero from '@/components/Hero/Hero';
 import { useQuery } from '@tanstack/react-query';
 import { fetchListings } from '@/lib/auth';
-import { getUser } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 
 type ApiImage = {
   id: number;
@@ -167,7 +167,7 @@ export default function Home() {
     maxYear: '',
   });
 
-  const user = getUser();
+  const user = JSON.parse(getStorageItem('user') || '{}');
   const userCityData = useMemo(() => ({
     cityId: user?.cityId || null,
     isCityIncluded: user?.isCityIncluded ?? null,

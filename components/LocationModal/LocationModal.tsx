@@ -4,15 +4,8 @@ import { MapPin, X, Search } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getActiveCities, updateCity } from '@/lib/auth';
-import { getUser, setUser } from '@/lib/storage';
-
-interface LocationModalProps {
-  open: boolean;
-  selectedCity: string | null;
-  onSelectCity: (city: string | null) => void;
-  onClose: () => void;
-}
+import { updateCity } from '@/lib/auth';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 
 interface CityData {
   id: number;
@@ -20,93 +13,49 @@ interface CityData {
   cityName: string;
 }
 
-export function LocationModal({ open, selectedCity, onSelectCity, onClose }: LocationModalProps) {
+interface LocationModalProps {
+  open: boolean;
+  selectedCity: CityData | null;
+  setSelectedCity: (city: CityData | null ) => void;
+  onClose: () => void;
+  activeCitiesData: CityData[];
+}
+
+export function  LocationModal({ open, selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
   const [locationSearch, setLocationSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleClose = () => {
     setLocationSearch('');
     onClose();
   };
 
-  const { data: activeCitiesData } = useQuery({
-    queryKey: ['GET_ACTIVE_CITIES'],
-    queryFn: async () => {
-      const res = await getActiveCities();
-      const cityData = Array.isArray((res as any)?.data)
-        ? (res as any).data
-        : Array.isArray(res)
-        ? res
-        : [];
-
-      return cityData.filter((city: any) => city?.cityName || city?.name || city?.displayName || city?.city);
-    },
-    enabled: open,
-    retry: 1,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const updateCityMutation = useMutation({
-    mutationFn: async ({ cityId, cityName, payload }: { cityId: string; cityName: string; payload: any }) => {
-      return await updateCity(cityId, payload);
-    },
-    onSuccess: (response, variables) => {
-      if (response && (response as any).code === 200) {
-        const currentUser = getUser();
-        if (currentUser) {
-          const updatedUser = {
-            ...currentUser,
-            cityId: variables.cityId,
-            cityName: variables.cityName,
-            // Set default isCityIncluded to true if not already set
-            isCityIncluded: currentUser.isCityIncluded !== undefined && currentUser.isCityIncluded !== null 
-              ? currentUser.isCityIncluded 
-              : true,
-          };
-          setUser(updatedUser);
-          // Dispatch custom event to notify other components
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('userDataUpdated'));
-          }
-        }
-      }
-      handleClose();
-    },
-    onError: (error) => {
-      console.error('Failed to update city:', error);
-    },
-  });
-
-  if (!open) return null;
-
-  const cities: string[] =
-    activeCitiesData && activeCitiesData.length
-      ? activeCitiesData.map((city: CityData) => city.cityName || (city as any).name || (city as any).displayName || (city as any).city)
-      : [];
-
-  const filteredCities = cities.filter((city: string) =>
-    city.toLowerCase().includes(locationSearch.toLowerCase()),
+  const filteredCities = activeCitiesData.filter((city: CityData) =>
+    city.cityName.toLowerCase().includes(locationSearch.toLowerCase()),
   );
 
-  const handleApply = () => {
+  const handleSelectCity = (city: CityData) => {
+    console.log('city', city);
+    setSelectedCity(city);
+  }
+
+  const handleApply = async() => {
+    setIsLoading(true);
     if (!selectedCity || !activeCitiesData) {
       handleClose();
       return;
     }
-
-    const selectedCityData = activeCitiesData.find(
-      (city: CityData) =>
-        (city.cityName || (city as any).name || (city as any).displayName || (city as any).city) === selectedCity
-    );
-
-    if (selectedCityData && selectedCityData.id) {
-      updateCityMutation.mutate({
-        cityId: String(selectedCityData.id),
-        cityName: selectedCity,
-        payload: {},
-      });
+    console.log('getStorageItem(token)', getStorageItem('token'));
+    
+    if(getStorageItem('token')) {
+      console.log('selectedCity', selectedCity);
+      const updateCityResponse = await updateCity(selectedCity.id, {})
+      console.log('updateCityResponse', updateCityResponse)
+      setIsLoading(false);
     } else {
       handleClose();
+      setStorageItem('city', String(selectedCity.id));
+      return;
     }
   };
 
@@ -151,21 +100,21 @@ export function LocationModal({ open, selectedCity, onSelectCity, onClose }: Loc
           <div>
             <p className="text-xs font-semibold text-slate-500 mb-2">Popular cities</p>
             <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
-              {filteredCities.map((city: string) => (
+              {filteredCities.map((city: CityData) => (
                 <button
-                  key={city}
+                  key={city.id}
                   type="button"
                   onClick={() => {
-                    onSelectCity(city);
+                    handleSelectCity(city);
                   }}
                   className={`flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-colors ${
-                    selectedCity === city
+                    selectedCity?.cityName === city.cityName
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50/70 text-slate-700'
                   }`}
                 >
-                  <span className="truncate">{city}</span>
-                  {selectedCity === city && (
+                  <span className="truncate">{city.cityName}</span>
+                  {selectedCity?.cityName === city.cityName && (
                     <span className="ml-2 h-1.5 w-1.5 rounded-full bg-primary-500" />
                   )}
                 </button>
@@ -184,8 +133,8 @@ export function LocationModal({ open, selectedCity, onSelectCity, onClose }: Loc
             <button
               type="button"
               onClick={() => {
-                onSelectCity(null);
                 handleClose();
+                setSelectedCity(null);
               }}
               className="text-xs hover:underline text-slate-500 hover:text-slate-700"
             >
@@ -195,9 +144,9 @@ export function LocationModal({ open, selectedCity, onSelectCity, onClose }: Loc
               variant="primary"
               className="px-4 py-2 text-sm rounded-xl"
               onClick={handleApply}
-              disabled={updateCityMutation.isPending}
+              disabled={isLoading}
             >
-              {updateCityMutation.isPending ? 'Updating...' : 'Apply'}
+              {isLoading ? 'Updating...' : 'Apply'}
             </Button>
           </div>
         </div>

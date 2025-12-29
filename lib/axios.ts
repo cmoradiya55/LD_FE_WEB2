@@ -3,7 +3,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { getToken, clearAuthData } from './storage';
+import { getStorageItem, clearAuthData } from './storage';
 
 const createAxiosInstance = (baseURL: string): AxiosInstance => {
   const instance = axios.create({
@@ -17,7 +17,7 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
   instance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
       if (typeof window !== 'undefined') {
-        const token = getToken();
+        const token = getStorageItem('token');
         if (token && token !== 'null') {
           config.headers = config.headers || {};
           config.headers['Authorization'] = `Bearer ${token}`;

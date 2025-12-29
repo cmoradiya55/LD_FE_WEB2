@@ -8,7 +8,7 @@ import { fetchListings } from '@/lib/auth';
 import { buildQueryStringFromFilters } from './utils';
 import { CarData } from '@/lib/carData';
 import CarsListings from './CarsListings';
-import { getUser } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 
 type ApiImage = {
   id: number;
@@ -84,7 +84,7 @@ export default function CarsListingsPageComponent() {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
   // Get user data from localStorage to include in query key for proper cache invalidation
-  const user = getUser();
+  const user = JSON.parse(getStorageItem('user') || '{}');
   const userCityData = useMemo(() => ({
     cityId: user?.cityId || null,
     isCityIncluded: user?.isCityIncluded ?? null,

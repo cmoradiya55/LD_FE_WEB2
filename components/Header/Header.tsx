@@ -24,10 +24,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LocationModal } from '../LocationModal/LocationModal';
-import { getUser, setUser } from '@/lib/storage';
+import { getStorageItem, setStorageItem} from '@/lib/storage';
 import { useQuery } from '@tanstack/react-query';
 import { getActiveCities, logout as logoutApi } from '@/lib/auth';
 import { generateUUID } from '@/lib/uuid';
+
+interface CityData {
+  id: number;
+  stateName: string;
+  cityName: string;
+}
 
 export default function Header() {
   const pathname = usePathname();
@@ -39,9 +45,10 @@ export default function Header() {
   const profileMenuRefDesktop = useRef<HTMLDivElement>(null);
 
   const [locationModalOpen, setLocationModalOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<CityData | null>(null);
 
-  const user = getUser();
+  const user = JSON.parse(getStorageItem('user') || '{}');
+  const city = getStorageItem('city');
   const { data: activeCitiesData } = useQuery({
     queryKey: ['GET_ACTIVE_CITIES_FOR_HEADER'],
     queryFn: async () => {
@@ -53,9 +60,8 @@ export default function Header() {
           : [];
       return cityData.filter((city: any) => city?.cityName || city?.name || city?.displayName || city?.city);
     },
-    enabled: !!(user?.cityId && !user?.cityName),
     retry: 1,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -76,61 +82,23 @@ export default function Header() {
   });
 
   useEffect(() => {
-    if (user?.cityId && !user?.cityName && activeCitiesData) {
+    if (city) {
       const cityData = activeCitiesData.find(
-        (city: any) => String(city.id) === String(user.cityId)
+        (city: any) => String(city.id) === String(city)
       );
       if (cityData?.cityName) {
-        const updatedUser = {
-          ...user,
-          cityName: cityData.cityName,
-        };
-        setUser(updatedUser);
         setSelectedCity(cityData.cityName);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('userDataUpdated'));
         }
       }
     }
-  }, [user?.cityId, user?.cityName, activeCitiesData]);
-
-  useEffect(() => {
-    const currentUser = getUser();
-    if (currentUser?.cityName) {
-      setSelectedCity(currentUser.cityName);
-    } else {
+    else{
       setSelectedCity(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const user = getUser();
-      if (user?.cityName) {
-        setSelectedCity(user.cityName);
-      } else {
-        setSelectedCity(null);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('userDataUpdated', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userDataUpdated', handleStorageChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const shouldShowLocationModal = window.localStorage.getItem('SHOW_LOCATION_MODAL_AFTER_LOGIN');
-    if (shouldShowLocationModal === 'true') {
       setLocationModalOpen(true);
-      window.localStorage.removeItem('SHOW_LOCATION_MODAL_AFTER_LOGIN');
     }
-  }, []);
+  }, [city, activeCitiesData]);
+
 
   const handleLogin = () => {
     router.push('/login');
@@ -216,7 +184,7 @@ export default function Header() {
               >
                 <MapPin className="w-4 h-4 text-slate-600" />
                 <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                  {selectedCity || 'Location'}
+                  {selectedCity?.cityName || 'Location'}
                 </span>
               </Button>
 
@@ -403,7 +371,7 @@ export default function Header() {
                 >
                   <MapPin className="w-4 h-4 text-slate-600" />
                   <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                    {selectedCity || 'Location'}
+                    {selectedCity?.cityName || 'Location'}
                   </span>
                 </Button>
               </div>
@@ -661,12 +629,15 @@ export default function Header() {
       </header >
 
       {/* Location Modal */}
-      <LocationModal
-        open={locationModalOpen}
-        selectedCity={selectedCity}
-        onSelectCity={(city) => setSelectedCity(city)}
-        onClose={() => setLocationModalOpen(false)}
-      />
+      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen && 
+        <LocationModal
+          open={locationModalOpen}
+          selectedCity={selectedCity}
+          setSelectedCity = {setSelectedCity}
+          onClose={() => setLocationModalOpen(false)}
+          activeCitiesData={activeCitiesData}
+        />
+      }
 
       {/* Bottom Mobile Navigation - Enhanced */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur-xl border-t border-gray-200 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]">

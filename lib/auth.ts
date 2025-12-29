@@ -90,7 +90,7 @@ export const sendEmailOtp = (payload: any) => postRequest(`/customer/profile/ema
 export const verifyEmailOtp = (payload: any) => postRequest(`/customer/profile/email-otp/verify`, payload);
 export const sendDeleteAccountOtp = (payload: any) => postRequest(`/customer/profile/delete/send-otp`, payload);
 export const verifyDeleteAccountOtp = (payload: any) => deleteRequest(`/customer/profile/delete`, payload);
-export const updateCity = (cityId: string, payload: any) => patchRequest(`/customer/profile/city/${cityId}`, payload);
+export const updateCity = (cityId: Number, payload: any) => patchRequest(`/customer/profile/city/${cityId}`, payload);
 
 // City APIs
 export const getActiveCities = () => getRequest(`/city/active`);
