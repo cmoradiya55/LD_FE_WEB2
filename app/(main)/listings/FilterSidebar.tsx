@@ -29,6 +29,8 @@ interface FilterSidebarProps {
 }
 
 export interface FilterState {
+    cityId: string | null;
+    isCityIncluded: boolean | null;
     status: string;
     sortBy?: UsedCarSortOption | string;
     minPrice: string;
@@ -196,6 +198,8 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
 
     const handleReset = () => {
         onFilterChange({
+            cityId: null,
+            isCityIncluded: null,
             status: '',
             sortBy: '',
             minPrice: '',

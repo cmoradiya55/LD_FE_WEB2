@@ -10,56 +10,58 @@ import { CarData } from '@/lib/carData';
 import CarsListings from './CarsListings';
 import { getStorageItem } from '@/lib/storage';
 
-type ApiImage = {
-  id: number;
-  imageSubtype?: number;
-  imageUrl: string;
-  title?: string;
-};
+// type ApiImage = {
+//   id: number;
+//   imageSubtype?: number;
+//   imageUrl: string;
+//   title?: string;
+// };
 
-type ApiImageGroup = {
-  type: number;
-  typeName: string;
-  images: ApiImage[];
-};
+// type ApiImageGroup = {
+//   type: number;
+//   typeName: string;
+//   images: ApiImage[];
+// };
 
-type ApiFeature = {
-  id: number;
-  name: string;
-  displayName: string;
-  valueType: number;
-  featureValue: string | number | boolean | null;
-};
+// type ApiFeature = {
+//   id: number;
+//   name: string;
+//   displayName: string;
+//   valueType: number;
+//   featureValue: string | number | boolean | null;
+// };
 
-type ApiListing = {
-  id: number;
-  slug?: string;
-  displayName: string;
-  variantName?: string;
-  registrationYear?: number;
-  kmDriven?: number | null;
-  registrationNumber?: string;
-  ownerType?: number;
-  rtoCode?: string;
-  final_price?: number | null;
-  transmissionType?: string;
-  fuelType?: string;
-  displacementCc?: number;
-  powerBhp?: number;
-  torqueNm?: number;
-  seatingCapacity?: number;
-  mileageKmpl?: number;
-  numberOfGears?: number;
-  fuelTankCapacityLiters?: number | null;
-  features?: ApiFeature[];
-  images?: ApiImageGroup[];
-};
+// type ApiListing = {
+//   id: number;
+//   slug?: string;
+//   displayName: string;
+//   variantName?: string;
+//   registrationYear?: number;
+//   kmDriven?: number | null;
+//   registrationNumber?: string;
+//   ownerType?: number;
+//   rtoCode?: string;
+//   final_price?: number | null;
+//   transmissionType?: string;
+//   fuelType?: string;
+//   displacementCc?: number;
+//   powerBhp?: number;
+//   torqueNm?: number;
+//   seatingCapacity?: number;
+//   mileageKmpl?: number;
+//   numberOfGears?: number;
+//   fuelTankCapacityLiters?: number | null;
+//   features?: ApiFeature[];
+//   images?: ApiImageGroup[];
+// };
 
 const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Listing+image+coming+soon';
 
 
 const initialFilters: FilterState = {
+  cityId: null,
+  isCityIncluded: null,
   status: '',
   sortBy: '',
   minPrice: '',
@@ -85,10 +87,11 @@ export default function CarsListingsPageComponent() {
 
   // Get user data from localStorage to include in query key for proper cache invalidation
   const user = JSON.parse(getStorageItem('user') || '{}');
+  const city = getStorageItem('city');
   const userCityData = useMemo(() => ({
-    cityId: user?.cityId || null,
+    cityId: city || null,
     isCityIncluded: user?.isCityIncluded ?? null,
-  }), [user?.cityId, user?.isCityIncluded]);
+  }), [city, user?.isCityIncluded]);
 
   const queryString = buildQueryStringFromFilters(filters);
 

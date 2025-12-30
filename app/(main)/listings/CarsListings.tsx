@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
 import { CarData } from '@/lib/carData';
-import { fetchListings } from '@/lib/auth';
 
 type ApiListing = {
   id: number;
@@ -23,36 +22,6 @@ type ApiListing = {
 const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Listing+image+coming+soon';
 
-const mapApiListingToCarData = (item: ApiListing): CarData => {
-  const yearMatch = item.displayName?.match(/(19|20)\d{2}/);
-  const year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
-
-  const formattedPrice = item.price
-    ? `₹${item.price.toLocaleString('en-IN')}/-`
-    : '';
-
-  return {
-    id: item.slug ?? String(item.id),
-    slug: item.slug,
-    name: `${item.displayName}${item.variantName ? ` ${item.variantName}` : ''}`,
-    year,
-    price: formattedPrice,
-    image: item.image || placeholderImage,
-    detailOptions: [],
-    fuelType: item.fuelType || 'Fuel TBD',
-    transmission: item.transmissionType || 'Transmission TBD',
-    kmsDriven: item.kmDriven ? `${item.kmDriven.toLocaleString()} km` : 'Km TBD',
-    location: item.rto || 'Location TBD',
-    owner: 'Owner info coming soon',
-    registrationYear: String(year),
-    insurance: '—',
-    seats: '',
-    rto: item.rto || '',
-    engineDisplacement: '',
-    yearOfManufacture: String(year),
-    badgeType: 'assured',
-  };
-};
 
 const CarsListings = ({ listings, loading, error }: { listings: CarData[], loading: boolean, error: string | null }) => {
  
