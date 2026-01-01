@@ -24,9 +24,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LocationModal } from '../LocationModal/LocationModal';
-import { getStorageItem, setStorageItem} from '@/lib/storage';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 import { useQuery } from '@tanstack/react-query';
-import { getActiveCities, logout as logoutApi } from '@/lib/auth';
+import { getActiveCities, logout as logoutApi } from '@/utils/auth';
 import { generateUUID } from '@/lib/uuid';
 
 interface CityData {
@@ -49,16 +49,23 @@ export default function Header() {
 
   const user = JSON.parse(getStorageItem('user') || '{}');
   const city = getStorageItem('city');
+
   const { data: activeCitiesData } = useQuery({
     queryKey: ['GET_ACTIVE_CITIES_FOR_HEADER'],
     queryFn: async () => {
       const res = await getActiveCities();
-      const cityData = Array.isArray((res as any)?.data)
-        ? (res as any).data
-        : Array.isArray(res)
-          ? res
-          : [];
-      return cityData.filter((city: any) => city?.cityName || city?.name || city?.displayName || city?.city);
+      try {
+        if (res.code === 200) {
+          return res.data.map((city: any) => ({
+            id: city.cityId,
+            stateName: city.stateName,
+            cityName: city.cityName,
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching active cities:', error);
+        throw error;
+      }
     },
     retry: 1,
     staleTime: 10 * 60 * 1000,
@@ -82,7 +89,7 @@ export default function Header() {
   });
 
   useEffect(() => {
-    if (city) {
+    if (city && activeCitiesData) {
       const cityData = activeCitiesData.find(
         (city: any) => String(city.id) === String(city)
       );
@@ -107,7 +114,7 @@ export default function Header() {
   const handleLogout = async () => {
     setMobileMenuOpen(false);
     setProfileMenuOpen(false);
-    
+
     try {
       const { data } = await logoutRefetch();
       logout();
@@ -539,7 +546,7 @@ export default function Header() {
                             </p>
                           </button>
                         </div>
-                        
+
                       </div>
                     )}
                   </div>
@@ -629,11 +636,11 @@ export default function Header() {
       </header >
 
       {/* Location Modal */}
-      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen && 
+      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen &&
         <LocationModal
           open={locationModalOpen}
           selectedCity={selectedCity}
-          setSelectedCity = {setSelectedCity}
+          setSelectedCity={setSelectedCity}
           onClose={() => setLocationModalOpen(false)}
           activeCitiesData={activeCitiesData}
         />

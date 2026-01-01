@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { clearAuthData, setStorageItem, getStorageItem } from '@/lib/storage';
-import { sendOtp, verifyOtp } from '@/lib/auth';
+import { clearAuthData, getStorageItem, setStorageItem } from '@/lib/storage';
+import { sendOtp, verifyOtp } from '@/utils/auth';
 import { generateUUID } from '@/lib/uuid';
 
 interface User {

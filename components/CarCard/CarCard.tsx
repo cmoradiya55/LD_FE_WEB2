@@ -3,7 +3,7 @@
 import { Heart, MapPin, Gauge, Fuel, BadgeCheck, CarFront, CircleUserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { addWishlist, removeWishlist } from '@/lib/auth';
+import { postAddToWishlist, delRemoveFromWishlist } from '@/utils/auth';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useQueryClient } from '@tanstack/react-query';
@@ -140,7 +140,7 @@ const CarCard = ({ car, showActions = true }: CarCardProps) => {
     };
     
     try {
-      const response = await addWishlist(payload);
+      const response = await postAddToWishlist(payload);
       if (response?.code === 200) {
         setIsFavorite(true);
         // Invalidate wishlist queries to refresh counts
@@ -175,7 +175,7 @@ const CarCard = ({ car, showActions = true }: CarCardProps) => {
     };
     
     try {
-      const response = await removeWishlist(payload);
+      const response = await delRemoveFromWishlist(payload);
       if (response?.code === 200) {
         setIsFavorite(false);
         // Invalidate wishlist queries to refresh counts

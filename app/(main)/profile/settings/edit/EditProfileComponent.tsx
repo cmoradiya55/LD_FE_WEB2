@@ -7,7 +7,7 @@ import MobileInput from '@/components/FormComponent/MobileInput';
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Camera, ChevronLeft, Pencil, Trash2Icon } from 'lucide-react';
-import { getProfileData, updateProfileData, sendEmailOtp, verifyEmailOtp } from '@/lib/auth';
+import { getProfileData, updateProfileData, sendEmailOtp, verifyEmailOtp } from '@/utils/auth';
 import { useRouter } from 'next/navigation';
 
 type ProfileFormValues = {

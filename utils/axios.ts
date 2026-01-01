@@ -3,7 +3,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { getStorageItem, clearAuthData } from './storage';
+import { getStorageItem } from '@/lib/storage';
 
 const createAxiosInstance = (baseURL: string): AxiosInstance => {
   const instance = axios.create({

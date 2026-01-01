@@ -7,7 +7,7 @@ import { CarData } from '@/lib/carData';
 import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import Hero from '@/components/Hero/Hero';
 import { useQuery } from '@tanstack/react-query';
-import { fetchListings } from '@/lib/auth';
+import { getListingApi } from '@/utils/auth';
 import { getStorageItem } from '@/lib/storage';
 
 type ApiImage = {
@@ -198,7 +198,7 @@ export default function Home() {
     queryKey: ['GET_CAR_LISTINGS', queryParams, userCityData.cityId, userCityData.isCityIncluded],
     queryFn: async () => {
       try {
-        const response = await fetchListings(queryParams);
+        const response = await getListingApi(queryParams);
         if (response.code === 200) {
           return response.data;
         }

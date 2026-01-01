@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, Search, Trash2 } from 'lucide-react';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
-import { getWishlist, getWishlistCount, clearWishlist } from '@/lib/auth';
+import { getWishlist, getWishlistCount, clearWishlist } from '@/utils/auth';
 import { toast } from 'react-toastify';
 
 const placeholderImage =

@@ -21,7 +21,7 @@ import { brandOptions, ownershipLabels, OwnershipType, kilometerDrivenLabels, Ki
 import { Button } from '@/components/Button/Button';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
-import { fetchSellCarBrands, fetchSellCarModelsWithYear, CreateSellCar } from '@/lib/auth';
+import { getCarBrands, getCarModelByYearAndBrandId, postCreateSellCar } from '@/utils/auth';
 
 interface CarDetails {
   brand: string;
@@ -100,7 +100,7 @@ const SellCarDetails: React.FC = () => {
     queryKey: ['FETCH_SELL_CAR_BRANDS'],
     queryFn: async () => {
       try {
-        const response = await fetchSellCarBrands();
+        const response = await getCarBrands();
         return response;
       } catch (error) {
         console.error('Error fetching brands', error);
@@ -119,7 +119,7 @@ const SellCarDetails: React.FC = () => {
     queryFn: async () => {
       if (!carDetails?.brand || !carDetails?.year) return null;
       try {
-        const response = await fetchSellCarModelsWithYear(carDetails.brand, carDetails.year);
+        const response = await getCarModelByYearAndBrandId(carDetails.brand, carDetails.year);
         return response;
       } catch (error) {
         console.error('Error fetching models', error);
@@ -338,15 +338,15 @@ const SellCarDetails: React.FC = () => {
         photos,
       };
 
-      const response = await CreateSellCar(payload);
-      console.log('CreateSellCar response', response);
+      const response = await postCreateSellCar(payload);
+      console.log('postCreateSellCar response', response);
 
       // Basic success check: adjust according to your API shape if needed
       if (response && (response.success === true || response.status === 'success' || response.code === 200)) {
         setHasSubmitted(true);
         setShowSuccessModal(true);
       } else {
-        console.error('CreateSellCar did not return a clear success flag', response);
+        console.error('postCreateSellCar did not return a clear success flag', response);
       }
     } catch (error) {
       console.error('Error submitting sell car listing', error);
@@ -450,19 +450,18 @@ const SellCarDetails: React.FC = () => {
               <button className="underline underline-offset-2 font-semibold">View Details</button>
             </p>
           </div>
-
           <div className="space-y-6 px-6 py-8 sm:px-8">
             {/* Hero Card */}
             <div className="rounded-[28px] border border-slate-100 bg-white shadow-sm p-4 sm:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
                 <div className="overflow-hidden rounded-2xl bg-slate-100 shadow-inner sm:w-52">
-                  <Image
+                  {/* <Image
                     src={heroImage}
                     alt={`${carDetails.brand} ${carDetails.model}`}
                     className="h-40 w-full object-cover"
                     width={100}
                     height={100}
-                  />
+                  /> */}
                 </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-3">

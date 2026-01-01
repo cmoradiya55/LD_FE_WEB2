@@ -8,7 +8,7 @@ import { Button } from '@/components/Button/Button';
 import { ShoppingCart } from 'lucide-react';
 import { getStorageItem } from '@/lib/storage';
 import { useQuery } from '@tanstack/react-query';
-import { logout as logoutApi } from '@/lib/auth';
+import { logout as logoutApi } from '@/utils/auth';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { generateUUID } from '@/lib/uuid';
 
