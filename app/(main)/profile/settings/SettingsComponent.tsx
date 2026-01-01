@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Mail, Phone, Trash2Icon } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { getProfileData, sendDeleteAccountOtp, verifyDeleteAccountOtp } from '@/lib/auth';
+import { getProfileData, sendDeleteAccountOtp, verifyDeleteAccountOtp } from '@/utils/auth';
 import { Button } from '@/components/Button/Button';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';

@@ -79,6 +79,33 @@ export enum OwnerType {
     FOURTH = 4,
 }
 
+export enum KilometerDriven {
+    ZERO_TO_10K = 1,
+    TEN_TO_20K = 2,
+    TWENTY_TO_30K = 3,
+    THIRTY_TO_40K = 4,
+    FORTY_TO_50K = 5,
+    FIFTY_TO_60K = 6,
+    SIXTY_TO_70K = 7,
+    SEVENTY_TO_80K = 8,
+    EIGHTY_TO_90K = 9,
+    NINTY_TO_1LAKH = 10,
+    ONE_LAKH_TO_1_2_LAKH = 11,
+    ONE_2_LAKH_TO_1_5_LAKH = 12,
+    ONE_5_LAKH_PLUS = 13,
+}
+
+// 1. All the possible things a user/inspector can upload
+export enum MediaCategory {
+    // Car Visuals
+    CAR = 'car',
+    IMAGE = 'image',
+    DOCUMENT = 'document',
+
+    // Sensitive Docs
+    SENSITIVE_DOCUMENT = 'sensitive_document',
+}
+
 export interface CarData {
     id: string;
     slug?: string;

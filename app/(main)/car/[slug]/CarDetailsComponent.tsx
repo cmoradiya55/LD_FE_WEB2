@@ -27,7 +27,7 @@ import {
 import { Button } from '@/components/Button/Button';
 import FeaturedImage from '@/components/FeaturedImage/FeaturedImage';
 import ImagePreviewModal from './ImagePreviewModal';
-import { fetchDetails } from '@/lib/auth';
+import { getDetailApi } from '@/utils/auth';
 
 type ApiFeature = {
   id: number;
@@ -161,7 +161,7 @@ const CarDetailsComponent: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetchDetails(slug);
+        const res = await getDetailApi(slug);
         const data: ApiDetail | undefined = res?.data;
         if (data) {
           setCar(mapApiDetailToCarData({ ...data, slug }));

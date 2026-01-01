@@ -16,7 +16,7 @@ import {
 } from '@/lib/carData';
 import { Button } from '@/components/Button/Button';
 import { RangeFilterSection } from './components/RangeFilterSection';
-import { fetchSellCarBrands, fetchSellCarModelsWithBrand, searchUsedCarsModel } from '@/lib/auth';
+import { getCarBrands, getCarModelsByBrandId, getSearchModelByBrandOrModel } from '@/utils/auth';
 
 export const USED_CAR_MIN_YEAR_FILTER = 2010;
 export const USED_CAR_MAX_YEAR_FILTER = new Date().getFullYear() - 1;
@@ -104,7 +104,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
         if (section === 'brand' && newExpanded && Object.keys(brandsData).length === 0) {
             setLoadingBrands(true);
             try {
-                const brandsResponse = await fetchSellCarBrands();
+                const brandsResponse = await getCarBrands();
                 const brands = Array.isArray(brandsResponse?.data)
                     ? brandsResponse.data
                     : Array.isArray(brandsResponse)
@@ -505,7 +505,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
         const loadModelsForSearch = async () => {
             setIsSearchingModels(true);
             try {
-                const response = await searchUsedCarsModel(brandSearchTerm);
+                const response = await getSearchModelByBrandOrModel(brandSearchTerm);
                 const models = Array.isArray(response?.data)
                     ? response.data
                     : Array.isArray(response)
@@ -620,7 +620,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
         if (newExpanded && brandData.subTypes.length === 0) {
             setLoadingModels(prev => ({ ...prev, [brandName]: true }));
             try {
-                const modelsResponse = await fetchSellCarModelsWithBrand(brandData.id);
+                const modelsResponse = await getCarModelsByBrandId(brandData.id);
                 const models = Array.isArray(modelsResponse?.data)
                     ? modelsResponse.data
                     : Array.isArray(modelsResponse)

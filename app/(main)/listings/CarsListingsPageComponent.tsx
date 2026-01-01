@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import FilterSidebar, { FilterState } from './FilterSidebar';
 import { Filter } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchListings } from '@/lib/auth';
+import { getListingApi } from '@/utils/auth';
 import { buildQueryStringFromFilters } from './utils';
 import { CarData } from '@/lib/carData';
 import CarsListings from './CarsListings';
@@ -99,7 +99,7 @@ export default function CarsListingsPageComponent() {
     queryKey: ['GET_CAR_LISTINGS_DATA', queryString, userCityData.cityId, userCityData.isCityIncluded],
     queryFn: async () => {
         try {
-            const response = await fetchListings(queryString);
+            const response = await getListingApi(queryString);
             if (response.code === 200) {
                 return response.data;
             }

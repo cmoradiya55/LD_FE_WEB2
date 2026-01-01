@@ -3,8 +3,7 @@
 import { MapPin, X, Search } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { updateCity } from '@/lib/auth';
+import { updateCity } from '@/utils/auth';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 
 interface CityData {
@@ -21,7 +20,7 @@ interface LocationModalProps {
   activeCitiesData: CityData[];
 }
 
-export function  LocationModal({ open, selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
+export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,21 +39,23 @@ export function  LocationModal({ open, selectedCity, setSelectedCity, onClose, a
   }
 
   const handleApply = async() => {
+    console.log('selectedCity', selectedCity);
     setIsLoading(true);
     if (!selectedCity || !activeCitiesData) {
       handleClose();
       return;
     }
-    console.log('getStorageItem(token)', getStorageItem('token'));
     
     if(getStorageItem('token')) {
-      console.log('selectedCity', selectedCity);
       const updateCityResponse = await updateCity(selectedCity.id, {})
-      console.log('updateCityResponse', updateCityResponse)
-      setIsLoading(false);
+      if (updateCityResponse.code === 200) {
+        setStorageItem('city', String(selectedCity.id));
+        setIsLoading(false);
+        handleClose();
+      }
     } else {
-      handleClose();
       setStorageItem('city', String(selectedCity.id));
+      handleClose();
       return;
     }
   };

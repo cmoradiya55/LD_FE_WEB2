@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import {
-  brandOptions,
   sellFlowSteps,
   StepId,
   ownershipOptions,
@@ -15,12 +14,12 @@ import {
 import { useRouter } from 'next/navigation';
 import PhotosUpload from '@/app/(main)/sellCar/PhotosUpload/PhotosUpload';
 import {
-  fetchSellCarBrands,
-  fetchSellCarModelsWithYear, 
-  fetchSellCarVariants,
-  fetchSellCarLocations,
-  fetchSellCarYears,
-} from '@/lib/auth';
+  getCarBrands,
+  getCarModelByYearAndBrandId,
+  getCarVariantsByYearAndModel,
+  getCitySuggestions,
+  getYearRangeById,
+} from '@/utils/auth';
 import { Button } from '@/components/Button/Button';
 
 type SelectionState = Partial<Record<StepId, string>>;
@@ -46,6 +45,7 @@ const AddCardComponent: React.FC = () => {
   const [locationInput, setLocationInput] = useState('');
   const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0);
   const [uploadedPhotoPreviews, setUploadedPhotoPreviews] = useState<string[]>([]);
+  const [uploadedPhotoFiles, setUploadedPhotoFiles] = useState<File[]>([]);
   const [options, setOptions] = useState<StepOption[]>([]);
   const [variantFuelFilter, setVariantFuelFilter] = useState<string | null>(null);
   const [variantTransmissionFilter, setVariantTransmissionFilter] = useState<string | null>(null);
@@ -128,7 +128,7 @@ const AddCardComponent: React.FC = () => {
     switch (stepId) {
       case 'brand':
         {
-          const brands = await fetchSellCarBrands();
+          const brands = await getCarBrands();
           console.log("brands", brands);
           const brandData = Array.isArray(brands?.data)
             ? brands.data
@@ -144,7 +144,7 @@ const AddCardComponent: React.FC = () => {
         }
       case 'year': {
         if (!selections.brand) return [];
-        const years = await fetchSellCarYears(selections.brand);
+        const years = await getYearRangeById(selections.brand);
         const yearData = Array.isArray(years?.data)
           ? years.data
           : Array.isArray(years)
@@ -158,7 +158,7 @@ const AddCardComponent: React.FC = () => {
       }
       case 'model': {
         if (!selections.brand || !selections.year) return [];
-        const models = await fetchSellCarModelsWithYear(selections.brand, selections.year);
+        const models = await getCarModelByYearAndBrandId(selections.brand, selections.year);
         const modelData = Array.isArray(models?.data)
           ? models.data
           : Array.isArray(models)
@@ -172,7 +172,7 @@ const AddCardComponent: React.FC = () => {
       }
       case 'variant': {
         if (!selections.year || !selections.model) return [];
-        const variantsResponse = await fetchSellCarVariants(
+        const variantsResponse = await getCarVariantsByYearAndModel(
           selections.year,
           selections.model
         );
@@ -264,9 +264,9 @@ const AddCardComponent: React.FC = () => {
       setSelectedVariantMeta(
         option
           ? {
-              fuelType: option.fuelType,
-              transmissionType: option.transmissionType,
-            }
+            fuelType: option.fuelType,
+            transmissionType: option.transmissionType,
+          }
           : null
       );
     }
@@ -405,7 +405,7 @@ const AddCardComponent: React.FC = () => {
       setIsLoadingLocations(true);
       try {
         const limit = 20;
-        const response = await fetchSellCarLocations(query, 1, limit);
+        const response = await getCitySuggestions(query, 1, limit);
         const items = Array.isArray(response?.data) ? response.data : [];
 
         setLocationSuggestions(items);
@@ -437,7 +437,7 @@ const AddCardComponent: React.FC = () => {
     try {
       const limit = 20;
       const nextPage = locationPage + 1;
-      const response = await fetchSellCarLocations(query, nextPage, limit);
+      const response = await getCitySuggestions(query, nextPage, limit);
       const items = Array.isArray(response?.data) ? response.data : [];
       console.log("responseeeeeeee", items);
 
@@ -489,8 +489,8 @@ const AddCardComponent: React.FC = () => {
     });
 
     setSelectionLabels((prev) => {
-      const updated: SelectionLabelState = { 
-        ...prev, 
+      const updated: SelectionLabelState = {
+        ...prev,
         location: displayLabel,
       };
       sellFlowSteps.slice(stepIndex + 1).forEach((step) => {
@@ -506,15 +506,14 @@ const AddCardComponent: React.FC = () => {
   };
 
   const isAllStepsCompleted = () => {
-    // Check if all steps have selections
+    console.log('selections', selections);
+    console.log('uploadedPhotosCount', uploadedPhotosCount);
+    console.log('selections.photos', selections.photos);
+    console.log('uploadedPhotoPreviews', uploadedPhotoPreviews);
     const allStepsHaveSelections = sellFlowSteps.every((step) => Boolean(selections[step.id]));
-
-    // If photos step is "upload-now", also check if at least 1 photo is uploaded
     if (selections.photos === 'upload-now') {
       return allStepsHaveSelections && uploadedPhotosCount >= 1;
     }
-
-    // For "need-help" option, just check if it's selected
     return allStepsHaveSelections;
   };
 
@@ -575,7 +574,7 @@ const AddCardComponent: React.FC = () => {
           >
             <ChevronLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
           </Button>
-          
+
           {/* Step Sub-Options */}
           {sellFlowSteps.map((step) => {
             const isActive = step.id === currentStepId;
@@ -780,8 +779,7 @@ const AddCardComponent: React.FC = () => {
         ) : currentStepId === 'photos' ? (
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
             <PhotosUpload
-              selectedValue={selections.photos}
-              initialPhotos={uploadedPhotoPreviews}
+              setUploadedPhotoFiles={setUploadedPhotoFiles}
               onSelectionChange={(value) => {
                 setSelections((prev) => {
                   const updated: SelectionState = { ...prev, photos: value };
