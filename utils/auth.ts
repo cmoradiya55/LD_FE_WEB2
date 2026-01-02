@@ -6,7 +6,6 @@ import { MediaCategory } from "@/lib/carData";
 const postRequest = async (url: string, payload: any) => {
   try {
     const res = await axiosInstance.post(url, payload);
-    console.log("res-----", res.data);
 
     return res?.data;
   } catch (err: any) {
@@ -17,7 +16,6 @@ const postRequest = async (url: string, payload: any) => {
 const getRequest = async (url: string) => {
   try {
     const res = await axiosInstance.get(url);
-    console.log("res-----", res.data);
 
     return res?.data;
   } catch (err: any) {
@@ -28,7 +26,6 @@ const getRequest = async (url: string) => {
 const putRequest = async (url: string, payload: any) => {
   try {
     const res = await axiosInstance.put(url, payload);
-    console.log("res-----", res.data);
     return res?.data;
   } catch (err: any) {
     return err?.response?.data;
@@ -38,7 +35,6 @@ const putRequest = async (url: string, payload: any) => {
 const patchRequest = async (url: string, payload: any) => {
   try {
     const res = await axiosInstance.patch(url, payload);
-    console.log("res-----", res.data);
     return res?.data;
   } catch (err: any) {
     return err?.response?.data;
@@ -48,7 +44,6 @@ const patchRequest = async (url: string, payload: any) => {
 const deleteRequest = async (url: string, payload?: any) => {
   try {
     const res = await axiosInstance.delete(url, payload ? { data: payload } : undefined);
-    console.log("res-----", res.data);
     return res?.data;
   } catch (err: any) {
     return err?.response?.data;
@@ -68,7 +63,7 @@ export const postCreateSellCar = (payload: any) => postRequest('/customer/sell-c
 // Used Car Listing APIs
 export const getListingApi = (query: any) => getRequest(`customer/used-car/list?${query}`);
 export const getDetailApi = (slug: string) => getRequest(`/customer/used-car/detail/${slug}`);
-export const getMyUsedCarListApi = (page: number = 1, limit: number = 1) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`);
+export const getMyUsedCarListApi = (page: number = 1, limit: number = 1) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`); //cityId, isCityIncluded
 export const getMyUsedCarDetail = (id: string) => getRequest(`/customer/used-car/${id}`);
 
 
@@ -98,8 +93,6 @@ export const updateCity = (cityId: Number, payload: any) => patchRequest(`/custo
 
 
 
-
-
 // ***Common APIs***
 // Car APIs
 export const getCarBrands = () => getRequest('/car/brands');
@@ -113,6 +106,7 @@ export const getSearchModelByBrandOrModel = (search: string) => getRequest(`/car
 // City APIs
 export const getActiveCities = () => getRequest(`/city/active`);
 
+export const getPreSignedUrlForImage = (payload:any) => postRequest('/storage/upload-url', payload);
 
 // Storage Services APIs
 export const postImageUpload = async (files: any) => {
