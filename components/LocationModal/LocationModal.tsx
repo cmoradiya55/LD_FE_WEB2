@@ -5,13 +5,11 @@ import { Button } from '@/components/Button/Button';
 import { useState } from 'react';
 import { updateCity } from '@/utils/auth';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
-
 interface CityData {
   id: number;
   stateName: string;
   cityName: string;
 }
-
 interface LocationModalProps {
   open: boolean;
   selectedCity: CityData | null;
@@ -29,6 +27,7 @@ export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeC
     onClose();
   };
 
+  console.log('activeCitiesData', activeCitiesData);
   const filteredCities = activeCitiesData.filter((city: CityData) =>
     city.cityName.toLowerCase().includes(locationSearch.toLowerCase()),
   );
@@ -39,15 +38,19 @@ export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeC
   }
 
   const handleApply = async() => {
-    console.log('selectedCity', selectedCity);
     setIsLoading(true);
     if (!selectedCity || !activeCitiesData) {
       handleClose();
       return;
     }
     
+    console.log('selectedCity', selectedCity);
     if(getStorageItem('token')) {
-      const updateCityResponse = await updateCity(selectedCity.id, {})
+      console.log('selectedCity?.id', selectedCity?.id);
+      const updateCityResponse = await updateCity(selectedCity?.id, {})
+
+
+      console.log('updateCityResponse', updateCityResponse);
       if (updateCityResponse.code === 200) {
         setStorageItem('city', String(selectedCity.id));
         setIsLoading(false);

@@ -43,24 +43,26 @@ export default function Header() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRefMobile = useRef<HTMLDivElement>(null);
   const profileMenuRefDesktop = useRef<HTMLDivElement>(null);
-
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [selectedCity, setSelectedCity] = useState<CityData | null>(null);
 
   const user = JSON.parse(getStorageItem('user') || '{}');
-  const city = getStorageItem('city');
+  const cityId = getStorageItem('city');
 
   const { data: activeCitiesData } = useQuery({
     queryKey: ['GET_ACTIVE_CITIES_FOR_HEADER'],
     queryFn: async () => {
       const res = await getActiveCities();
+
+      console.log('res', res);
       try {
         if (res.code === 200) {
-          return res.data.map((city: any) => ({
-            id: city.cityId,
-            stateName: city.stateName,
-            cityName: city.cityName,
-          }));
+
+          // if(cityId) {
+          //   console.log('city found', res.data.find((city: any) => (city.id) == (cityId)));
+          //   setSelectedCity(res.data.find((city: any) => (city.id) === (cityId)));
+          // }
+          return res.data;
         }
       } catch (error) {
         console.error('Error fetching active cities:', error);
@@ -71,6 +73,26 @@ export default function Header() {
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    console.log('cityId', cityId);
+    console.log('activeCitiesData', activeCitiesData);
+    if (cityId && activeCitiesData) {
+      const cityData = activeCitiesData.find(
+        (city: any) => (city.id) == (cityId)
+      );
+      console.log('cityData', cityData);
+
+      if (cityData) {
+        setSelectedCity(cityData);
+      }
+    }
+    else if(!cityId && activeCitiesData) {
+      console.log('setting selectedCity to null');
+      setSelectedCity(null);
+      setLocationModalOpen(true);
+    }
+  }, [cityId, activeCitiesData]);
 
   const { refetch: logoutRefetch } = useQuery({
     queryKey: ['LOGOUT'],
@@ -88,23 +110,7 @@ export default function Header() {
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    if (city && activeCitiesData) {
-      const cityData = activeCitiesData.find(
-        (city: any) => String(city.id) === String(city)
-      );
-      if (cityData?.cityName) {
-        setSelectedCity(cityData.cityName);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('userDataUpdated'));
-        }
-      }
-    }
-    else{
-      setSelectedCity(null);
-      setLocationModalOpen(true);
-    }
-  }, [city, activeCitiesData]);
+ 
 
 
   const handleLogin = () => {
@@ -191,7 +197,7 @@ export default function Header() {
               >
                 <MapPin className="w-4 h-4 text-slate-600" />
                 <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                  {selectedCity?.cityName || 'Location'}
+                  {selectedCity?.cityName ? selectedCity.cityName : 'Location'}
                 </span>
               </Button>
 
@@ -378,7 +384,8 @@ export default function Header() {
                 >
                   <MapPin className="w-4 h-4 text-slate-600" />
                   <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                    {selectedCity?.cityName || 'Location'}
+                    {/* {selectedCity?.cityName || 'Location'} */}
+                    { selectedCity?.cityName || 'Location'}
                   </span>
                 </Button>
               </div>
@@ -635,8 +642,8 @@ export default function Header() {
 
       </header >
 
-      {/* Location Modal */}
-      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen &&
+      {/* Location Modal */} 
+      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen && 
         <LocationModal
           open={locationModalOpen}
           selectedCity={selectedCity}
