@@ -22,6 +22,7 @@ import { Button } from '@/components/Button/Button';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import { getCarBrands, getCarModelByYearAndBrandId, postCreateSellCar } from '@/utils/auth';
+import { getStorageItem } from '@/lib/storage';
 
 interface CarDetails {
   brand: string;
@@ -72,9 +73,9 @@ const SellCarDetails: React.FC = () => {
       photos: searchParams.get('photos') || '',
     };
 
-    // Check sessionStorage for labels first
+    // Check localStorage for labels first
     if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('sellCarDetails');
+      const stored = getStorageItem('sellCarDetails');
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
@@ -163,14 +164,14 @@ const SellCarDetails: React.FC = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const payload = sessionStorage.getItem('sellCarDetails');
+    const payload = getStorageItem('sellCarDetails');
     if (!payload) return;
     try {
       const parsed = JSON.parse(payload);
       if (Array.isArray(parsed?.photoPreviews)) {
         setPhotoPreviews(parsed.photoPreviews);
       }
-      // Get labels from sessionStorage
+      // Get labels from localStorage
       if (parsed?.selectionLabels) {
         setDisplayLabels({
           brand: parsed.selectionLabels.brand,
@@ -178,7 +179,7 @@ const SellCarDetails: React.FC = () => {
           location: parsed.selectionLabels.location,
         });
       }
-      // Get location data from sessionStorage
+      // Get location data from localStorage
       if (parsed?.locationData) {
         setLocationData(parsed.locationData);
       }
@@ -293,7 +294,7 @@ const SellCarDetails: React.FC = () => {
       let storedPayload: any = null;
 
       if (typeof window !== 'undefined') {
-        const raw = sessionStorage.getItem('sellCarDetails');
+        const raw = getStorageItem('sellCarDetails');
         if (raw) {
           try {
             storedPayload = JSON.parse(raw);
@@ -310,8 +311,8 @@ const SellCarDetails: React.FC = () => {
         '';
 
       // Photos (currently we only have preview URLs; backend integration for uploads can replace these)
-      const photos: string[] = Array.isArray(storedPayload?.photoPreviews)
-        ? storedPayload.photoPreviews
+      const photos: string[] = Array.isArray(storedPayload?.photoKeys)
+        ? storedPayload.photoKeys
         : [];
 
       // Price: parse numeric value from formatted price string
@@ -339,7 +340,6 @@ const SellCarDetails: React.FC = () => {
       };
 
       const response = await postCreateSellCar(payload);
-      console.log('postCreateSellCar response', response);
 
       // Basic success check: adjust according to your API shape if needed
       if (response && (response.success === true || response.status === 'success' || response.code === 200)) {
@@ -455,13 +455,13 @@ const SellCarDetails: React.FC = () => {
             <div className="rounded-[28px] border border-slate-100 bg-white shadow-sm p-4 sm:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
                 <div className="overflow-hidden rounded-2xl bg-slate-100 shadow-inner sm:w-52">
-                  {/* <Image
+                  <Image
                     src={heroImage}
                     alt={`${carDetails.brand} ${carDetails.model}`}
                     className="h-40 w-full object-cover"
                     width={100}
                     height={100}
-                  /> */}
+                  />
                 </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-3">

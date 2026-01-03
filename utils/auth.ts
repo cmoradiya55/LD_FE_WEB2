@@ -108,6 +108,8 @@ export const getActiveCities = () => getRequest(`/city/active`);
 
 export const getPreSignedUrlForImage = (payload:any) => postRequest('/storage/upload-url', payload);
 
+
+
 // Storage Services APIs
 export const postImageUpload = async (files: any) => {
 

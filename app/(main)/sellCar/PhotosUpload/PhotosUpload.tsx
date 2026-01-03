@@ -5,7 +5,7 @@ import { Upload, X, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface PhotosUploadProps {
-    setUploadedPhotoFiles?: (files: File[]) => void;
+    setUploadedPhotoFiles: (files: File[]) => void;
     onSelectionChange?: (value: string) => void;
     onPhotosUploaded?: (count: number) => void;
     onPhotosChange?: (photos: string[]) => void;
@@ -39,7 +39,7 @@ const PhotosUpload: React.FC<PhotosUploadProps> = ({
             const updatedFiles = [...uploadedFiles, ...newFiles].slice(0, 20);
             setUploadedPhotos(updatedPhotos);
             setUploadedFiles(updatedFiles);  // this is for current component to keep track of the uploaded files
-            setUploadedPhotoFiles?.(updatedFiles); // this is for parent component to get the uploaded files
+            setUploadedPhotoFiles(updatedFiles); // this is for parent component to get the uploaded files
             onPhotosUploaded?.(updatedPhotos.length);
             toast.success("Photos uploaded successfully!");
 

@@ -19,8 +19,10 @@ import {
   getCarVariantsByYearAndModel,
   getCitySuggestions,
   getYearRangeById,
+  postImageUpload,
 } from '@/utils/auth';
 import { Button } from '@/components/Button/Button';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 
 type SelectionState = Partial<Record<StepId, string>>;
 type SelectionLabelState = Partial<Record<StepId, string>>;
@@ -63,7 +65,7 @@ const AddCardComponent: React.FC = () => {
     if (typeof window === 'undefined') return;
 
     try {
-      const raw = sessionStorage.getItem('sellCarDetails');
+      const raw = getStorageItem('sellCarDetails');
       const stored = raw ? JSON.parse(raw) : null;
       const registrationNumber = stored?.registrationNumber;
 
@@ -71,29 +73,29 @@ const AddCardComponent: React.FC = () => {
         router.replace('/sellCar/registrationNumber');
       }
     } catch (error) {
-      console.error('Unable to read registration number from sessionStorage', error);
+      console.error('Unable to read registration number from localStorage', error);
       router.replace('/sellCar/registrationNumber');
     }
   }, [router]);
 
   useEffect(() => {
-    console.log("currentStepId", currentStepId);
+    const { price, location } = selections || {};
 
     setSearchTerm('');
-    if (currentStepId === 'location' && selections.location) {
-      setLocationInput(selections.location);
-    }
-    if (currentStepId === 'price' && selections.price) {
-      setPriceInput(selections.price.replace(/[₹,\s]/g, ''));
-    }
-  }, [currentStepId, selections.price, selections.location]);
 
-  useEffect(() => {
+    if (currentStepId === 'location' && location) {
+      setLocationInput(location);
+    }
+    if (currentStepId === 'price' && price) {
+      setPriceInput(price.replace(/[₹,\s]/g, ''));
+    }
+
     if (currentStepId !== 'variant') {
       setVariantFuelFilter(null);
       setVariantTransmissionFilter(null);
     }
-  }, [currentStepId]);
+  }, [currentStepId, selections]);
+
 
   const currentStepIndex = sellFlowSteps.findIndex((step) => step.id === currentStepId);
   const currentStepMeta = sellFlowSteps[currentStepIndex];
@@ -123,13 +125,10 @@ const AddCardComponent: React.FC = () => {
   };
 
   const getOptionsForStep = async (stepId: StepId): Promise<StepOption[]> => {
-    console.log("stepId", stepId);
-
     switch (stepId) {
       case 'brand':
         {
           const brands = await getCarBrands();
-          console.log("brands", brands);
           const brandData = Array.isArray(brands?.data)
             ? brands.data
             : Array.isArray(brands)
@@ -517,12 +516,16 @@ const AddCardComponent: React.FC = () => {
     return allStepsHaveSelections;
   };
 
-  const handleViewDetails = () => {
+  const handleViewDetails = async () => {
+    const fileUploadRes = await postImageUpload(uploadedPhotoFiles);
+    const uploadedFileKeys = fileUploadRes.data.map((file: any) => file.key);
+    const uploadedFileUrls = fileUploadRes.data.map((file: any) => file.keyWithBaseUrl);
+    
     if (!isAllStepsCompleted()) return;
 
     if (typeof window !== 'undefined') {
       let storedPayload: any = null;
-      const raw = sessionStorage.getItem('sellCarDetails');
+      const raw = getStorageItem('sellCarDetails');
       if (raw) {
         try {
           storedPayload = JSON.parse(raw);
@@ -539,10 +542,10 @@ const AddCardComponent: React.FC = () => {
         variantName: selectionLabels.variant,
         fuelType: selectedVariantMeta?.fuelType,
         transmissionType: selectedVariantMeta?.transmissionType,
-        photoPreviews: uploadedPhotoPreviews,
-        createdAt: new Date().toISOString(),
+        photoPreviews: uploadedFileUrls,
+        photoKeys: uploadedFileKeys,
       };
-      sessionStorage.setItem('sellCarDetails', JSON.stringify(payload));
+      setStorageItem('sellCarDetails', JSON.stringify(payload));
     }
 
     const params = new URLSearchParams();
