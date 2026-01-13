@@ -22,7 +22,7 @@ import {
   postImageUpload,
 } from '@/utils/auth';
 import { Button } from '@/components/Button/Button';
-import { getStorageItem, setStorageItem } from '@/lib/storage';
+import { clearStorageItem, getStorageItem, setStorageItem } from '@/lib/storage';
 
 type SelectionState = Partial<Record<StepId, string>>;
 type SelectionLabelState = Partial<Record<StepId, string>>;
@@ -72,11 +72,107 @@ const AddCardComponent: React.FC = () => {
       if (!registrationNumber) {
         router.replace('/sellCar/registrationNumber');
       }
+      
     } catch (error) {
       console.error('Unable to read registration number from localStorage', error);
       router.replace('/sellCar/registrationNumber');
     }
   }, [router]);
+
+  // Load saved car details from localStorage if available
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      // Check both 'carDetails' and 'sellCarDetails' keys
+        const carDetailsRaw = getStorageItem('sellCarDetails');
+      if (!carDetailsRaw) {
+        return;
+      }
+
+      const carDetails = JSON.parse(carDetailsRaw);
+      
+      // Restore selections - ensure all values are strings to match option.value
+      const restoredSelections: SelectionState = {};
+      
+      // First, check if selections are at top level (from sellCarDetails structure)
+      sellFlowSteps.forEach((step) => {
+        const value = carDetails[step.id] || carDetails.selections?.[step.id];
+        if (value !== undefined && value !== null && value !== '') {
+          // Convert to string to ensure matching with option.value
+          restoredSelections[step.id] = String(value);
+        }
+      });
+      
+      // Also check if there's a nested selections object
+      if (carDetails.selections && typeof carDetails.selections === 'object') {
+        Object.entries(carDetails.selections).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '' && sellFlowSteps.some(step => step.id === key)) {
+            restoredSelections[key as StepId] = String(value);
+          }
+        });
+      }
+      
+      if (Object.keys(restoredSelections).length > 0) {
+        setSelections(restoredSelections);
+      }
+
+      // Restore selection labels
+      if (carDetails.selectionLabels) {
+        setSelectionLabels(carDetails.selectionLabels);
+      }
+
+      // Restore price input (remove formatting)
+      const priceValue = carDetails.price || carDetails.selections?.price;
+      if (priceValue) {
+        const numericValue = String(priceValue).replace(/[₹,\s]/g, '');
+        setPriceInput(numericValue);
+      }
+
+      // Restore location input and data
+      if (carDetails.locationData) {
+        setLocationData(carDetails.locationData);
+        setLocationInput(carDetails.locationData.formatted || carDetails.location || '');
+      } else {
+        const locationValue = carDetails.location || carDetails.selections?.location;
+        if (locationValue) {
+          setLocationInput(String(locationValue));
+        }
+      }
+
+      // Restore variant metadata
+      if (carDetails.fuelType || carDetails.transmissionType) {
+        setSelectedVariantMeta({
+          fuelType: carDetails.fuelType || undefined,
+          transmissionType: carDetails.transmissionType || undefined,
+        });
+      }
+
+      // Restore photo previews
+      if (carDetails.photoPreviews && Array.isArray(carDetails.photoPreviews)) {
+        setUploadedPhotoPreviews(carDetails.photoPreviews);
+        setUploadedPhotosCount(carDetails.photoPreviews.length);
+      }
+
+      // Set current step to first incomplete step, or last step if all complete
+      const firstIncompleteStep = sellFlowSteps.find((step) => {
+        const value = restoredSelections[step.id] || carDetails[step.id] || carDetails.selections?.[step.id];
+        return !value;
+      });
+      
+      if (firstIncompleteStep) {
+        setCurrentStepId(firstIncompleteStep.id);
+      } else {
+        // All steps completed, go to last step
+        const lastStep = sellFlowSteps[sellFlowSteps.length - 1];
+        if (lastStep) {
+          setCurrentStepId(lastStep.id);
+        }
+      }
+    } catch (error) {
+      console.error('Unable to load car details from localStorage', error);
+    }
+  }, []);
 
   useEffect(() => {
     const { price, location } = selections || {};
@@ -248,7 +344,6 @@ const AddCardComponent: React.FC = () => {
   const blockingMessage = getBlockingMessage(currentStepId);
 
   const handleOptionSelect = (value: string, label: string) => {
-    console.log('value', value, 'label', label);
     setSelections((prev) => {
       const updated: SelectionState = { ...prev, [currentStepId]: value };
       sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
@@ -282,7 +377,6 @@ const AddCardComponent: React.FC = () => {
     if (nextStep) {
       setCurrentStepId(nextStep.id);
     }
-    console.log("nextStep", nextStep);
   };
 
   const formatPrice = (value: string): string => {
@@ -374,6 +468,7 @@ const AddCardComponent: React.FC = () => {
     setCurrentStepId('brand');
     setUploadedPhotosCount(0);
     setUploadedPhotoPreviews([]);
+    clearStorageItem('sellCarDetails');
   };
 
   useEffect(() => {
@@ -438,7 +533,6 @@ const AddCardComponent: React.FC = () => {
       const nextPage = locationPage + 1;
       const response = await getCitySuggestions(query, nextPage, limit);
       const items = Array.isArray(response?.data) ? response.data : [];
-      console.log("responseeeeeeee", items);
 
       setLocationSuggestions((prev) => [...prev, ...items]);
       setHasMoreLocations(items.length === limit);
@@ -505,10 +599,6 @@ const AddCardComponent: React.FC = () => {
   };
 
   const isAllStepsCompleted = () => {
-    console.log('selections', selections);
-    console.log('uploadedPhotosCount', uploadedPhotosCount);
-    console.log('selections.photos', selections.photos);
-    console.log('uploadedPhotoPreviews', uploadedPhotoPreviews);
     const allStepsHaveSelections = sellFlowSteps.every((step) => Boolean(selections[step.id]));
     if (selections.photos === 'upload-now') {
       return allStepsHaveSelections && uploadedPhotosCount >= 1;
@@ -570,13 +660,13 @@ const AddCardComponent: React.FC = () => {
         {/* Step Header */}
         <div className="flex flex-wrap gap-1.5">
           {/* Back Button */}
-          <Button
+          {/* <Button
             onClick={() => router.back()}
             variant="secondary"
             className="flex items-center px-1.5 py-1 rounded-full border text-base md:text-lg lg:text-xs font-medium hover:text-primary-600 transition-colors"
           >
             <ChevronLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </Button>
+          </Button> */}
 
           {/* Step Sub-Options */}
           {sellFlowSteps.map((step) => {

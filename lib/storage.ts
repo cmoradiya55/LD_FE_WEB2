@@ -39,6 +39,18 @@ export function removeStorageItem(key: string): boolean {
   }
 }
 
+export function clearStorageItem(key: string): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.error(`Error clearing item from localStorage: ${error}`);
+    return false;
+  }
+}
+
 export function clearStorage(): boolean {
   if (typeof window === 'undefined') return false;
   
