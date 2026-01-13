@@ -87,7 +87,7 @@ const RegistrationNumberComponent = () => {
     };
 
     return (
-        <div className="pt-[8rem]  flex items-center justify-center px-4 overflow-hidden">
+        <div className="lg:pt-[5%] flex items-center justify-center px-4 overflow-hidden">
             <div className="w-full max-w-md">
                 {/* Header Section */}
                 <div className="text-center mb-4">
