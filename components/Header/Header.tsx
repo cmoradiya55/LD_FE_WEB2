@@ -35,6 +35,24 @@ interface CityData {
   cityName: string;
 }
 
+function LocationButton({ selectedCity, onClick }: { 
+  selectedCity: CityData | null; 
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all duration-200"
+      onClick={onClick}
+    >
+      <MapPin className="w-4 h-4 text-slate-600" />
+      <span className="text-sm font-medium text-slate-700">
+        {selectedCity?.cityName || 'Location'}
+      </span>
+    </Button>
+  );
+}
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -57,11 +75,9 @@ export default function Header() {
       console.log('res', res);
       try {
         if (res.code === 200) {
-
-          // if(cityId) {
-          //   console.log('city found', res.data.find((city: any) => (city.id) == (cityId)));
-          //   setSelectedCity(res.data.find((city: any) => (city.id) === (cityId)));
-          // }
+          if(cityId) {
+            setSelectedCity(res.data.find((city: any) => (city.id) === (cityId)));
+          }
           return res.data;
         }
       } catch (error) {
@@ -77,7 +93,7 @@ export default function Header() {
   useEffect(() => {
     console.log('cityId', cityId);
     console.log('activeCitiesData', activeCitiesData);
-    if (cityId && activeCitiesData) {
+    if (cityId && activeCitiesData && selectedCity === null) {
       const cityData = activeCitiesData.find(
         (city: any) => (city.id) == (cityId)
       );
@@ -190,16 +206,10 @@ export default function Header() {
               </Link>
 
               {/* location button */}
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all duration-200"
-                onClick={() => setLocationModalOpen(true)}
-              >
-                <MapPin className="w-4 h-4 text-slate-600" />
-                <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                  {selectedCity?.cityName ? selectedCity.cityName : 'Location'}
-                </span>
-              </Button>
+              <LocationButton 
+                selectedCity={selectedCity} 
+                onClick={() => setLocationModalOpen(true)} 
+              />
 
               {/* Right Side Actions */}
               <div className="flex items-center gap-2">
@@ -377,17 +387,10 @@ export default function Header() {
                 </Link>
 
                 {/* location button */}
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all duration-200"
-                  onClick={() => setLocationModalOpen(true)}
-                >
-                  <MapPin className="w-4 h-4 text-slate-600" />
-                  <span className="hidden lg:inline text-sm font-medium text-slate-700">
-                    {/* {selectedCity?.cityName || 'Location'} */}
-                    { selectedCity?.cityName || 'Location'}
-                  </span>
-                </Button>
+                <LocationButton 
+                  selectedCity={selectedCity} 
+                  onClick={() => setLocationModalOpen(true)} 
+                />
               </div>
 
               <div className="flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">

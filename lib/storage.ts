@@ -66,7 +66,6 @@ export function clearStorage(): boolean {
 export function clearAuthData(): boolean {
   removeStorageItem(STORAGE_KEYS.TOKEN);
   removeStorageItem(STORAGE_KEYS.USER);
-  removeStorageItem(STORAGE_KEYS.CITY);
   return true;
 }
 

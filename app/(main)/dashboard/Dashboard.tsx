@@ -64,16 +64,13 @@ export const useCarDetails = (carId: string | null) => {
 };
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'seller' | 'buyer'>('seller');
+  const [activeTab, setActiveTab] = useState('sellCar');
   const [profile, setProfile] = useState<any | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const { logout } = useAuth();
 
   // Get profile data from localStorage
   useEffect(() => {
     const userData = JSON.parse(getStorageItem('user') || '{}');
     setProfile(userData);
-    setIsLoadingProfile(false);
 
     // Listen for storage changes to update profile when it's changed
     const handleStorageChange = () => {
@@ -148,16 +145,6 @@ export default function Dashboard() {
     refetchOnWindowFocus: false,
   });
 
-  const handleLogout = async () => {
-    try {
-      const { data } = await logoutRefetch();
-      logout();
-    } catch (error) {
-      console.error('Logout API error:', error);
-      logout();
-    }
-  };
-
   const displayName = useMemo(() => {
     return profile?.fullName || profile?.full_name || profile?.name || 'Guest User';
   }, [profile]);
@@ -208,51 +195,8 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-      {/* Profile Header */}
-      <div className="card mb-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-          <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {isLoadingProfile ? 'Loading...' : displayName}
-              </h1>
-              <p className="text-gray-600">
-                {isLoadingProfile ? 'Loading...' : displayEmail}
-              </p>
-              <p className="text-sm text-gray-500">
-                {isLoadingProfile ? 'Loading...' : displayPhone}
-              </p>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-2"
-              href="/profile/settings/edit"
-            >
-              <Edit className="w-5 h-5" />
-              <span>Edit Profile</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-2 text-red-600 hover:bg-red-50"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* Sell */}
-        <Link href="/sellCar/addCar">
+        {/* <Link href="/sellCar/addCar">
           <div className="card hover:shadow-lg cursor-pointer group">
             <div className="flex items-center space-x-4">
               <div className="bg-primary-100 p-3 rounded-lg group-hover:bg-primary-200 transition-colors">
@@ -264,9 +208,8 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </Link>
+        </Link> */}
 
-        {/* Total Views */}
         <div className="card">
           <div className="flex items-center space-x-4">
             <div className="bg-green-100 p-3 rounded-lg">
@@ -279,8 +222,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Active Bids */}
-        <div className="card">
+        {/* <div className="card">
           <div className="flex items-center space-x-4">
             <div className="bg-blue-100 p-3 rounded-lg">
               <IndianRupee className="w-6 h-6 text-blue-600" />
@@ -290,9 +232,8 @@ export default function Dashboard() {
               <p className="text-lg font-bold text-gray-900">{activeBids}</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* Favorites */}
         <Link href="/favorites">
           <div className="card hover:shadow-lg cursor-pointer group">
             <div className="flex items-center space-x-4">
@@ -308,14 +249,13 @@ export default function Dashboard() {
             </div>
           </div>
         </Link>
-
       </div>
 
       {/* Tab Navigation */}
       <div className="flex space-x-4 mb-6 border-b border-gray-200">
         <button
-          onClick={() => setActiveTab('seller')}
-          className={`pb-4 px-4 font-medium transition-colors relative ${activeTab === 'seller'
+          onClick={() => setActiveTab('sellCar')}
+          className={`pb-4 px-4 font-medium transition-colors relative ${activeTab === 'sellCar'
             ? 'text-primary-600'
             : 'text-gray-600 hover:text-gray-900'
             }`}
@@ -324,30 +264,14 @@ export default function Dashboard() {
             <Car className="w-5 h-5" />
             <span>My Listings ({myListings.length})</span>
           </div>
-          {activeTab === 'seller' && (
+          {activeTab === 'sellCar' && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />
           )}
         </button>
-
-        {/* <button
-          onClick={() => setActiveTab('buyer')}
-          className={`pb-4 px-4 font-medium transition-colors relative ${activeTab === 'buyer'
-              ? 'text-primary-600'
-              : 'text-gray-600 hover:text-gray-900'
-            }`}
-        >
-          <div className="flex items-center space-x-2">
-            <Heart className="w-5 h-5" />
-            <span>Saved Cars ({myFavorites.length})</span>
-          </div>
-          {activeTab === 'buyer' && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />
-          )}
-        </button> */}
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'seller' ? (
+      {activeTab === 'sellCar' && (
         <div>
           {isLoadingListings ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -407,28 +331,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      ) : (
-        <div>
-          {/* {myFavorites.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myFavorites.map((car) => (
-                <CarCard key={car.id} car={car} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No saved cars yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Browse cars and save your favorites to view them later
-              </p>
-              <Button href="/">Browse Cars</Button>
-            </div>
-          )} */}
-        </div>
-      )}
+      ) }
     </div>
   );
 }
