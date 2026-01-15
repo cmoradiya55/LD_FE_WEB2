@@ -2,8 +2,22 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
-import { CarDetails } from './SellCarFlow';
 import { getCarVariantsByYearAndModel } from '@/utils/auth';
+
+export interface CarDetails {
+  brand?: string;
+  year?: string;
+  model?: string;
+  variant?: string;
+  variantLabel?: string;
+  ownership?: string;
+  kilometerDriven?: string;
+  location?: string;
+  price?: string;
+  photos?: string;
+  fuelType?: string;
+  transmissionType?: string;
+}
 
 interface VariantStepProps {
   carDetails: CarDetails;
@@ -137,7 +151,7 @@ const VariantStep: React.FC<VariantStepProps> = ({
                   {availableFuelTypes.map((fuel) => (
                     <button
                       key={fuel}
-                      onClick={() => setFuelFilter(fuel)}
+                      onClick={() => setFuelFilter(fuel || null)}
                       className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
                         fuelFilter === fuel
                           ? 'bg-primary-50 text-primary-700 border-primary-400'
@@ -168,7 +182,7 @@ const VariantStep: React.FC<VariantStepProps> = ({
                   {availableTransmissions.map((trans) => (
                     <button
                       key={trans}
-                      onClick={() => setTransmissionFilter(trans)}
+                      onClick={() => setTransmissionFilter(trans || null)}
                       className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
                         transmissionFilter === trans
                           ? 'bg-primary-50 text-primary-700 border-primary-400'

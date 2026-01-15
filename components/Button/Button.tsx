@@ -35,7 +35,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'text-white p-2 bg-gradient-to-r from-[var(--color-gradient-from)] via-[var(--color-gradient-from)] to-[var(--color-gradient-to)]',
   secondary:
-    'bg-white p-2 text-primary-600 border border-primary-200 hover:border-primary-400 hover:bg-primary-50',
+    'bg-white p-2 text-primary-700 border border-gray-200 hover:border-primary-400 hover:bg-primary-50',
   ghost: 'text-gray-700 p-2 hover:bg-gray-100/80',
   outline: 'bg-white text-blue-700 hover:text-blue-900 backdrop-blur-sm border border-blue-700 shadow-sm hover:bg-blue-50 transition-colors px-3 py-2 rounded-full flex items-center gap-1.5 text-xs mb-4 disabled:opacity-50 disabled:pointer-events-none',
 };

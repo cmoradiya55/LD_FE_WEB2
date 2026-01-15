@@ -6,9 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
 import { ListingCar, CarData } from '@/lib/carData';
-import { getMyUsedCarListApi, getMyUsedCarDetail, getWishlistCount, logout as logoutApi } from '@/utils/auth';
+import { getMyUsedCarList, getMyUsedCarDetail, getWishlistCount, logout as logoutApi } from '@/utils/auth';
 import { getStorageItem } from '@/lib/storage';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { generateUUID } from '@/lib/uuid';
 import {
   User,
@@ -91,7 +90,7 @@ export default function Dashboard() {
     queryKey: ['GET_MY_USED_CAR_LIST', 1, 50],
     queryFn: async () => {
       try {
-        const response = await getMyUsedCarListApi(1, 50);
+        const response = await getMyUsedCarList(1, 50);
         if (response?.code === 200) {
           return response.data;
         }
