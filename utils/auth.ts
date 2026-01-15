@@ -63,8 +63,11 @@ export const postCreateSellCar = (payload: any) => postRequest('/customer/sell-c
 // Used Car Listing APIs
 export const getListingApi = (query: any) => getRequest(`customer/used-car/list?${query}`);
 export const getDetailApi = (slug: string) => getRequest(`/customer/used-car/detail/${slug}`);
-export const getMyUsedCarListApi = (page: number = 1, limit: number = 1) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`); //cityId, isCityIncluded
+export const getMyUsedCarList = (page: number = 1, limit: number = 10) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`); //cityId, isCityIncluded
 export const getMyUsedCarDetail = (id: string) => getRequest(`/customer/used-car/${id}`);
+export const patchUpdateMyCarDetail = (id: string, payload: any) => patchRequest(`/customer/used-car/${id}`, payload);
+export const patchApproveListingDelistingAndPriceUpdate = (id: string, payload: any) => patchRequest(`/customer/used-car/${id}/status`, payload);
+
 
 
 // Authentication APIs
@@ -103,9 +106,9 @@ export const getCarVariantsByYearAndModel = (year: string, modelId: string) => g
 export const getSearchModelByBrandOrModel = (search: string) => getRequest(`/car/models?search=${search}`);
 
 
+
 // City APIs
 export const getActiveCities = () => getRequest(`/city/active`);
-
 export const getPreSignedUrlForImage = (payload:any) => postRequest('/storage/upload-url', payload);
 
 

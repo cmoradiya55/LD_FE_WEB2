@@ -142,6 +142,9 @@ export interface CarData {
     views?: string;
     badgeType: 'assured' | 'private';
     isWishlisted?: boolean;
+    linkDrivePrice?: string;
+    managerSuggestedPrice?: string;
+    customerExpectedPrice?: string;
 }
 
 export interface Bid {

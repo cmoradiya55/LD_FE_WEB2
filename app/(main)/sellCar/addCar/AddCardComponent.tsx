@@ -1,14 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { Search, CheckCircle2 } from 'lucide-react';
 import {
   sellFlowSteps,
   StepId,
   ownershipOptions,
-  locationOptions,
-  dummyInventory,
-  BrandOption,
   kilometerDrivenOptions,
 } from './data';
 import { useRouter } from 'next/navigation';
@@ -21,7 +18,6 @@ import {
   getYearRangeById,
   postImageUpload,
 } from '@/utils/auth';
-import { Button } from '@/components/Button/Button';
 import { clearStorageItem, getStorageItem, setStorageItem } from '@/lib/storage';
 
 type SelectionState = Partial<Record<StepId, string>>;
@@ -60,7 +56,6 @@ const AddCardComponent: React.FC = () => {
   const [selectedVariantMeta, setSelectedVariantMeta] = useState<{ fuelType?: string; transmissionType?: string } | null>(null);
   const router = useRouter();
 
-  // Ensure registration number is present before allowing user to be on this page
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -72,64 +67,47 @@ const AddCardComponent: React.FC = () => {
       if (!registrationNumber) {
         router.replace('/sellCar/registrationNumber');
       }
-      
+
     } catch (error) {
       console.error('Unable to read registration number from localStorage', error);
       router.replace('/sellCar/registrationNumber');
     }
   }, [router]);
 
-  // Load saved car details from localStorage if available
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     try {
-      // Check both 'carDetails' and 'sellCarDetails' keys
-        const carDetailsRaw = getStorageItem('sellCarDetails');
+      const carDetailsRaw = getStorageItem('sellCarDetails');
       if (!carDetailsRaw) {
         return;
       }
 
       const carDetails = JSON.parse(carDetailsRaw);
-      
-      // Restore selections - ensure all values are strings to match option.value
+
       const restoredSelections: SelectionState = {};
-      
-      // First, check if selections are at top level (from sellCarDetails structure)
+
       sellFlowSteps.forEach((step) => {
         const value = carDetails[step.id] || carDetails.selections?.[step.id];
         if (value !== undefined && value !== null && value !== '') {
-          // Convert to string to ensure matching with option.value
           restoredSelections[step.id] = String(value);
         }
       });
-      
-      // Also check if there's a nested selections object
-      if (carDetails.selections && typeof carDetails.selections === 'object') {
-        Object.entries(carDetails.selections).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '' && sellFlowSteps.some(step => step.id === key)) {
-            restoredSelections[key as StepId] = String(value);
-          }
-        });
-      }
-      
+
       if (Object.keys(restoredSelections).length > 0) {
         setSelections(restoredSelections);
       }
 
-      // Restore selection labels
       if (carDetails.selectionLabels) {
         setSelectionLabels(carDetails.selectionLabels);
       }
 
-      // Restore price input (remove formatting)
       const priceValue = carDetails.price || carDetails.selections?.price;
       if (priceValue) {
         const numericValue = String(priceValue).replace(/[₹,\s]/g, '');
         setPriceInput(numericValue);
       }
 
-      // Restore location input and data
       if (carDetails.locationData) {
         setLocationData(carDetails.locationData);
         setLocationInput(carDetails.locationData.formatted || carDetails.location || '');
@@ -140,7 +118,6 @@ const AddCardComponent: React.FC = () => {
         }
       }
 
-      // Restore variant metadata
       if (carDetails.fuelType || carDetails.transmissionType) {
         setSelectedVariantMeta({
           fuelType: carDetails.fuelType || undefined,
@@ -148,22 +125,18 @@ const AddCardComponent: React.FC = () => {
         });
       }
 
-      // Restore photo previews
       if (carDetails.photoPreviews && Array.isArray(carDetails.photoPreviews)) {
         setUploadedPhotoPreviews(carDetails.photoPreviews);
         setUploadedPhotosCount(carDetails.photoPreviews.length);
       }
 
-      // Set current step to first incomplete step, or last step if all complete
       const firstIncompleteStep = sellFlowSteps.find((step) => {
-        const value = restoredSelections[step.id] || carDetails[step.id] || carDetails.selections?.[step.id];
-        return !value;
+        return !restoredSelections[step.id];
       });
-      
+
       if (firstIncompleteStep) {
         setCurrentStepId(firstIncompleteStep.id);
       } else {
-        // All steps completed, go to last step
         const lastStep = sellFlowSteps[sellFlowSteps.length - 1];
         if (lastStep) {
           setCurrentStepId(lastStep.id);
@@ -175,15 +148,13 @@ const AddCardComponent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const { price, location } = selections || {};
-
     setSearchTerm('');
 
-    if (currentStepId === 'location' && location) {
-      setLocationInput(location);
+    if (currentStepId === 'location' && selections.location) {
+      setLocationInput(selections.location);
     }
-    if (currentStepId === 'price' && price) {
-      setPriceInput(price.replace(/[₹,\s]/g, ''));
+    if (currentStepId === 'price' && selections.price) {
+      setPriceInput(selections.price.replace(/[₹,\s]/g, ''));
     }
 
     if (currentStepId !== 'variant') {
@@ -278,7 +249,6 @@ const AddCardComponent: React.FC = () => {
             ? variantsResponse
             : [];
 
-        // Flatten fuel-type groups into a single list of variants
         const flatVariants: any[] = [];
         variantGroups.forEach((group: any) => {
           const fuelType = group?.fuelType;
@@ -299,18 +269,15 @@ const AddCardComponent: React.FC = () => {
         return ownershipOptions.map((option) => ({ value: String(option.id), label: option.label }));
       case 'kilometerDriven':
         return kilometerDrivenOptions.map((option) => ({ value: String(option.id), label: option.label }));
-      case 'location':
-        return locationOptions.map((option: string) => ({ value: option, label: option }));
       case 'price':
-        return []; // No options, manual input only
+        return [];
       case 'photos':
-        return []; // Custom component handles this step
+        return [];
       default:
         return [];
     }
   };
 
-  // Load options whenever the step or its dependencies change
   useEffect(() => {
     let isCancelled = false;
 
@@ -352,7 +319,6 @@ const AddCardComponent: React.FC = () => {
       return updated;
     });
 
-    // When selecting a variant, also capture its fuel/transmission metadata
     if (currentStepId === 'variant') {
       const option = filteredOptions.find((o) => o.value === value) as StepOption | undefined;
       setSelectedVariantMeta(
@@ -446,20 +412,6 @@ const AddCardComponent: React.FC = () => {
     }
   };
 
-  const filteredCars = useMemo(() => {
-    return dummyInventory.filter((car) => {
-      if (selections.brand && car.brand !== selections.brand) return false;
-      if (selections.year && car.year !== selections.year) return false;
-      if (selections.model && car.model !== selections.model) return false;
-      if (selections.variant && car.variant !== selections.variant) return false;
-      if (selections.ownership && car.ownership !== selections.ownership) return false;
-      if (selections.kilometerDriven && car.kilometerDriven !== selections.kilometerDriven) return false;
-      if (selections.location && car.location !== selections.location) return false;
-      if (selections.price && car.priceRange !== selections.price) return false;
-      return true;
-    });
-  }, [selections]);
-
   const selectionCount = Object.values(selections).filter(Boolean).length;
 
   const resetFilters = () => {
@@ -471,11 +423,7 @@ const AddCardComponent: React.FC = () => {
     clearStorageItem('sellCarDetails');
   };
 
-  useEffect(() => {
-    setUploadedPhotosCount(uploadedPhotoPreviews.length);
-  }, [uploadedPhotoPreviews]);
 
-  // Debounced effect to fetch location suggestions
   useEffect(() => {
     if (currentStepId !== 'location') {
       setLocationSuggestions([]);
@@ -486,7 +434,6 @@ const AddCardComponent: React.FC = () => {
     }
 
     const query = locationInput.trim();
-    // Require at least 3 characters before showing suggestions
     if (!query || query.length < 3) {
       setLocationSuggestions([]);
       setShowSuggestions(false);
@@ -515,7 +462,7 @@ const AddCardComponent: React.FC = () => {
       } finally {
         setIsLoadingLocations(false);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
       clearTimeout(timeoutId);
@@ -548,7 +495,7 @@ const AddCardComponent: React.FC = () => {
   const handleLocationScroll = (container: HTMLDivElement | null) => {
     if (!container) return;
     const { scrollTop, clientHeight, scrollHeight } = container;
-    const threshold = 40; // px from bottom to trigger load
+    const threshold = 40;
     if (scrollTop + clientHeight >= scrollHeight - threshold) {
       loadMoreLocations();
     }
@@ -561,12 +508,10 @@ const AddCardComponent: React.FC = () => {
 
     const stepIndex = sellFlowSteps.findIndex((step) => step.id === currentStepId);
 
-    // Create display label with city and pincode for header
     const displayLabel = suggestion.city && suggestion.pincode
       ? `${suggestion.city}, ${suggestion.pincode}`
       : suggestion.city || suggestion.pincode || formattedLocation;
 
-    // Store full location data
     setLocationData({
       formatted: suggestion.formatted || formattedLocation,
       city: suggestion.city || '',
@@ -607,11 +552,16 @@ const AddCardComponent: React.FC = () => {
   };
 
   const handleViewDetails = async () => {
-    const fileUploadRes = await postImageUpload(uploadedPhotoFiles);
-    const uploadedFileKeys = fileUploadRes.data.map((file: any) => file.key);
-    const uploadedFileUrls = fileUploadRes.data.map((file: any) => file.keyWithBaseUrl);
-    
     if (!isAllStepsCompleted()) return;
+
+    let uploadedFileKeys: string[] = [];
+    let uploadedFileUrls: string[] = [];
+
+    if (uploadedPhotoFiles.length > 0) {
+      const fileUploadRes = await postImageUpload(uploadedPhotoFiles);
+      uploadedFileKeys = fileUploadRes.data.map((file: any) => file.key);
+      uploadedFileUrls = fileUploadRes.data.map((file: any) => file.keyWithBaseUrl);
+    }
 
     if (typeof window !== 'undefined') {
       let storedPayload: any = null;
@@ -627,8 +577,8 @@ const AddCardComponent: React.FC = () => {
       const payload = {
         ...(storedPayload || {}),
         ...selections,
-        selectionLabels: selectionLabels,
-        locationData: locationData,
+        selectionLabels,
+        locationData,
         variantName: selectionLabels.variant,
         fuelType: selectedVariantMeta?.fuelType,
         transmissionType: selectedVariantMeta?.transmissionType,
@@ -644,7 +594,6 @@ const AddCardComponent: React.FC = () => {
         params.append(key, value);
       }
     });
-    // Also send human-readable variant name for display on details page
     if (selectionLabels.variant) {
       params.append('variantName', selectionLabels.variant);
     }
@@ -659,15 +608,6 @@ const AddCardComponent: React.FC = () => {
 
         {/* Step Header */}
         <div className="flex flex-wrap gap-1.5">
-          {/* Back Button */}
-          {/* <Button
-            onClick={() => router.back()}
-            variant="secondary"
-            className="flex items-center px-1.5 py-1 rounded-full border text-base md:text-lg lg:text-xs font-medium hover:text-primary-600 transition-colors"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </Button> */}
-
           {/* Step Sub-Options */}
           {sellFlowSteps.map((step) => {
             const isActive = step.id === currentStepId;
@@ -811,7 +751,6 @@ const AddCardComponent: React.FC = () => {
                       }
                     }}
                     onBlur={() => {
-                      // Delay hiding suggestions to allow click events
                       setTimeout(() => setShowSuggestions(false), 200);
                     }}
                     autoFocus
