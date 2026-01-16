@@ -1,6 +1,7 @@
 const STORAGE_KEYS = {
   TOKEN: 'token',
   USER: 'user',
+  CITY: 'city',
 } as const;
 
 export function getStorageItem(key: string): string | null {
@@ -38,6 +39,18 @@ export function removeStorageItem(key: string): boolean {
   }
 }
 
+export function clearStorageItem(key: string): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.error(`Error clearing item from localStorage: ${error}`);
+    return false;
+  }
+}
+
 export function clearStorage(): boolean {
   if (typeof window === 'undefined') return false;
   
@@ -50,47 +63,9 @@ export function clearStorage(): boolean {
   }
 }
 
-export function getToken(): string | null {
-  return getStorageItem(STORAGE_KEYS.TOKEN);
-}
-
-export function setToken(token: string): boolean {
-  return setStorageItem(STORAGE_KEYS.TOKEN, token);
-}
-
-export function removeToken(): boolean {
-  return removeStorageItem(STORAGE_KEYS.TOKEN);
-}
-
-export function getUser(): any | null {
-  const userStr = getStorageItem(STORAGE_KEYS.USER);
-  if (!userStr) return null;
-  
-  try {
-    return JSON.parse(userStr);
-  } catch (error) {
-    console.error('Error parsing user data:', error);
-    return null;
-  }
-}
-
-export function setUser(user: any): boolean {
-  try {
-    const userStr = JSON.stringify(user);
-    return setStorageItem(STORAGE_KEYS.USER, userStr);
-  } catch (error) {
-    console.error('Error stringifying user data:', error);
-    return false;
-  }
-}
-
-export function removeUser(): boolean {
-  return removeStorageItem(STORAGE_KEYS.USER);
-}
-
 export function clearAuthData(): boolean {
-  removeToken();
-  removeUser();
+  removeStorageItem(STORAGE_KEYS.TOKEN);
+  removeStorageItem(STORAGE_KEYS.USER);
   return true;
 }
 

@@ -7,7 +7,7 @@ import {
   Ref,
 } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'accept' | 'reject';
 
 type ButtonBaseProps = {
   variant?: ButtonVariant;
@@ -29,15 +29,19 @@ type ButtonNativeProps = ButtonBaseProps &
 export type ButtonProps = ButtonLinkProps | ButtonNativeProps;
 
 const baseClasses =
-  'inline-flex items-center justify-center rounded-xl font-semibold text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-400 disabled:opacity-50 disabled:pointer-events-none shadow-sm hover:shadow-md active:scale-[0.98]';
+  'inline-flex items-center justify-center rounded-lg font-semibold text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-400 disabled:opacity-50 disabled:pointer-events-none shadow-sm hover:shadow-md active:scale-[0.98]';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'text-white p-2 bg-gradient-to-r from-[var(--color-gradient-from)] via-[var(--color-gradient-from)] to-[var(--color-gradient-to)]',
   secondary:
-    'bg-white p-2 text-primary-600 border border-primary-200 hover:border-primary-400 hover:bg-primary-50',
+    'bg-white p-2 text-primary-700 border border-gray-200 hover:border-primary-400 hover:bg-primary-50',
   ghost: 'text-gray-700 p-2 hover:bg-gray-100/80',
   outline: 'bg-white text-blue-700 hover:text-blue-900 backdrop-blur-sm border border-blue-700 shadow-sm hover:bg-blue-50 transition-colors px-3 py-2 rounded-full flex items-center gap-1.5 text-xs mb-4 disabled:opacity-50 disabled:pointer-events-none',
+  accept:
+    'text-white bg-green-500 hover:bg-green-600',
+  reject:
+    'text-white bg-red-500 hover:bg-red-600',
 };
 
 const cn = (...classes: Array<string | false | undefined | null>) =>

@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getToken, getUser, clearAuthData, setToken, setUser } from '@/lib/storage';
-import { sendOtp, verifyOtp } from '@/lib/auth';
+import { clearAuthData, getStorageItem, setStorageItem } from '@/lib/storage';
+import { sendOtp, verifyOtp } from '@/utils/auth';
 import { generateUUID } from '@/lib/uuid';
 
 interface User {
@@ -37,8 +37,8 @@ const PROTECTED_ROUTES = [
 const PUBLIC_ROUTES = ['/login'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
-  const [token, setTokenState] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -47,12 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        const storedToken = getToken();
-        const storedUser = getUser();
+        const storedToken = getStorageItem('token');
+        const storedUser = JSON.parse(getStorageItem('user') || '{}');
 
         if (storedToken && storedUser) {
-          setTokenState(storedToken);
-          setUserState(storedUser);
+          setToken(storedToken);
+          setUser(storedUser);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for logout events from axios interceptor
     const handleLogout = () => {
       clearAuthData();
-      setTokenState(null);
-      setUserState(null);
+      setToken(null);
+      setUser(null);
       if (pathname !== '/login') {
         router.push('/login');
       }
@@ -99,8 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // If user is authenticated and tries to access public route (like login)
-    if (isPublicRoute && token) {
+    if (isPublicRoute && token && user?.fullName) {
+      console.log('redirecting to dashboard',isPublicRoute,token);
+
       router.push('/dashboard');
+      return;
+    }
+    else if(isPublicRoute && token && !user?.fullName){
+      router.push('/profile/settings/edit');
       return;
     }
   }, [pathname, token, isLoading, router]);
@@ -135,31 +141,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       const res = await verifyOtp(payload);
+      console.log('res', res);
+         
       
       if (res.code === 200 && res.data?.accessToken) {
+        console.log('res.data', res.data);
+        
         const accessToken = res.data.accessToken;
         const userData = res.data;
+        const city = userData.cityId;
 
-        // If cityId is null or undefined, set a flag to show the location modal after login
-        // If cityId exists, it will be saved directly with userData
-        if (
-          typeof window !== 'undefined' &&
-          userData &&
-          (userData.cityId === null || userData.cityId === undefined || userData.cityId === '')
-        ) {
-          window.localStorage.setItem('SHOW_LOCATION_MODAL_AFTER_LOGIN', 'true');
-        } else {
-          // If cityId exists, remove the flag (in case it was set before)
-          window.localStorage.removeItem('SHOW_LOCATION_MODAL_AFTER_LOGIN');
-        }
+        console.log('userData', userData);
 
         // Store in localStorage
-        setToken(accessToken);
-        setUser(userData);
+        setStorageItem('user', JSON.stringify(userData));
+        setStorageItem('token', accessToken);
+        if(city) setStorageItem('city', city);
 
         // Update state
-        setTokenState(accessToken);
-        setUserState(userData);
+        setToken(accessToken);
+        setUser(userData);
 
         // Redirect to dashboard
         router.push('/dashboard');
@@ -179,20 +180,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthData();
     
     // Clear state
-    setTokenState(null);
-    setUserState(null);
+    setToken(null);
+    setUser(null);
     
     // Redirect to login
     router.push('/login');
   }, [router]);
 
   const checkAuth = useCallback(() => {
-    const storedToken = getToken();
-    const storedUser = getUser();
-    
+    const storedToken = getStorageItem('token');
+    const storedUser = JSON.parse(getStorageItem('user') || '{}');
+
     if (storedToken && storedUser) {
-      setTokenState(storedToken);
-      setUserState(storedUser);
+      setToken(storedToken);
+      setUser(storedUser);
       return true;
     }
     

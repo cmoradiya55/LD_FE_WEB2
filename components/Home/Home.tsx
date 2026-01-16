@@ -7,8 +7,8 @@ import { CarData } from '@/lib/carData';
 import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import Hero from '@/components/Hero/Hero';
 import { useQuery } from '@tanstack/react-query';
-import { fetchListings } from '@/lib/auth';
-import { getUser } from '@/lib/storage';
+import { getListingApi } from '@/utils/auth';
+import { getStorageItem } from '@/lib/storage';
 
 type ApiImage = {
   id: number;
@@ -167,7 +167,7 @@ export default function Home() {
     maxYear: '',
   });
 
-  const user = getUser();
+  const user = JSON.parse(getStorageItem('user') || '{}');
   const userCityData = useMemo(() => ({
     cityId: user?.cityId || null,
     isCityIncluded: user?.isCityIncluded ?? null,
@@ -198,7 +198,7 @@ export default function Home() {
     queryKey: ['GET_CAR_LISTINGS', queryParams, userCityData.cityId, userCityData.isCityIncluded],
     queryFn: async () => {
       try {
-        const response = await fetchListings(queryParams);
+        const response = await getListingApi(queryParams);
         if (response.code === 200) {
           return response.data;
         }

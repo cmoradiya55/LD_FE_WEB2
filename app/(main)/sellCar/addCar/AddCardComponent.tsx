@@ -1,27 +1,24 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { Search, CheckCircle2 } from 'lucide-react';
 import {
-  brandOptions,
   sellFlowSteps,
   StepId,
   ownershipOptions,
-  locationOptions,
-  dummyInventory,
-  BrandOption,
   kilometerDrivenOptions,
 } from './data';
 import { useRouter } from 'next/navigation';
 import PhotosUpload from '@/app/(main)/sellCar/PhotosUpload/PhotosUpload';
 import {
-  fetchSellCarBrands,
-  fetchSellCarModelsWithYear, 
-  fetchSellCarVariants,
-  fetchSellCarLocations,
-  fetchSellCarYears,
-} from '@/lib/auth';
-import { Button } from '@/components/Button/Button';
+  getCarBrands,
+  getCarModelByYearAndBrandId,
+  getCarVariantsByYearAndModel,
+  getCitySuggestions,
+  getYearRangeById,
+  postImageUpload,
+} from '@/utils/auth';
+import { clearStorageItem, getStorageItem, setStorageItem } from '@/lib/storage';
 
 type SelectionState = Partial<Record<StepId, string>>;
 type SelectionLabelState = Partial<Record<StepId, string>>;
@@ -46,6 +43,7 @@ const AddCardComponent: React.FC = () => {
   const [locationInput, setLocationInput] = useState('');
   const [uploadedPhotosCount, setUploadedPhotosCount] = useState(0);
   const [uploadedPhotoPreviews, setUploadedPhotoPreviews] = useState<string[]>([]);
+  const [uploadedPhotoFiles, setUploadedPhotoFiles] = useState<File[]>([]);
   const [options, setOptions] = useState<StepOption[]>([]);
   const [variantFuelFilter, setVariantFuelFilter] = useState<string | null>(null);
   const [variantTransmissionFilter, setVariantTransmissionFilter] = useState<string | null>(null);
@@ -58,42 +56,73 @@ const AddCardComponent: React.FC = () => {
   const [selectedVariantMeta, setSelectedVariantMeta] = useState<{ fuelType?: string; transmissionType?: string } | null>(null);
   const router = useRouter();
 
-  // Ensure registration number is present before allowing user to be on this page
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     try {
-      const raw = sessionStorage.getItem('sellCarDetails');
+      const raw = getStorageItem('sellCarDetails');
       const stored = raw ? JSON.parse(raw) : null;
       const registrationNumber = stored?.registrationNumber;
 
       if (!registrationNumber) {
         router.replace('/sellCar/registrationNumber');
       }
+
     } catch (error) {
-      console.error('Unable to read registration number from sessionStorage', error);
+      console.error('Unable to read registration number from localStorage', error);
       router.replace('/sellCar/registrationNumber');
     }
   }, [router]);
 
   useEffect(() => {
-    console.log("currentStepId", currentStepId);
+    if (typeof window === 'undefined') return;
 
-    setSearchTerm('');
-    if (currentStepId === 'location' && selections.location) {
-      setLocationInput(selections.location);
+    try {
+      const carDetailsRaw = getStorageItem('sellCarDetails');
+      
+      // Clear all previous selections and start fresh from brand step
+      setSelections({});
+      setSelectionLabels({});
+      setPriceInput('');
+      setLocationInput('');
+      setLocationData(null);
+      setSelectedVariantMeta(null);
+      setUploadedPhotoPreviews([]);
+      setUploadedPhotosCount(0);
+      setCurrentStepId('brand');
+
+      // Only keep registrationNumber in localStorage, clear other selections
+      if (carDetailsRaw) {
+        const carDetails = JSON.parse(carDetailsRaw);
+        if (carDetails.registrationNumber) {
+          // Keep only registrationNumber, clear everything else
+          setStorageItem('sellCarDetails', JSON.stringify({
+            registrationNumber: carDetails.registrationNumber,
+            registrationNumberFormatted: carDetails.registrationNumberFormatted,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Unable to reset car details', error);
     }
-    if (currentStepId === 'price' && selections.price) {
-      setPriceInput(selections.price.replace(/[₹,\s]/g, ''));
-    }
-  }, [currentStepId, selections.price, selections.location]);
+  }, []);
 
   useEffect(() => {
+    setSearchTerm('');
+
+    if (currentStepId === 'location') {
+      setLocationInput('');
+    }
+    if (currentStepId === 'price') {
+      setPriceInput('');
+    }
+
     if (currentStepId !== 'variant') {
       setVariantFuelFilter(null);
       setVariantTransmissionFilter(null);
     }
-  }, [currentStepId]);
+  }, [currentStepId, selections]);
+
 
   const currentStepIndex = sellFlowSteps.findIndex((step) => step.id === currentStepId);
   const currentStepMeta = sellFlowSteps[currentStepIndex];
@@ -123,13 +152,10 @@ const AddCardComponent: React.FC = () => {
   };
 
   const getOptionsForStep = async (stepId: StepId): Promise<StepOption[]> => {
-    console.log("stepId", stepId);
-
     switch (stepId) {
       case 'brand':
         {
-          const brands = await fetchSellCarBrands();
-          console.log("brands", brands);
+          const brands = await getCarBrands();
           const brandData = Array.isArray(brands?.data)
             ? brands.data
             : Array.isArray(brands)
@@ -144,7 +170,7 @@ const AddCardComponent: React.FC = () => {
         }
       case 'year': {
         if (!selections.brand) return [];
-        const years = await fetchSellCarYears(selections.brand);
+        const years = await getYearRangeById(selections.brand);
         const yearData = Array.isArray(years?.data)
           ? years.data
           : Array.isArray(years)
@@ -158,7 +184,7 @@ const AddCardComponent: React.FC = () => {
       }
       case 'model': {
         if (!selections.brand || !selections.year) return [];
-        const models = await fetchSellCarModelsWithYear(selections.brand, selections.year);
+        const models = await getCarModelByYearAndBrandId(selections.brand, selections.year);
         const modelData = Array.isArray(models?.data)
           ? models.data
           : Array.isArray(models)
@@ -172,7 +198,7 @@ const AddCardComponent: React.FC = () => {
       }
       case 'variant': {
         if (!selections.year || !selections.model) return [];
-        const variantsResponse = await fetchSellCarVariants(
+        const variantsResponse = await getCarVariantsByYearAndModel(
           selections.year,
           selections.model
         );
@@ -183,7 +209,6 @@ const AddCardComponent: React.FC = () => {
             ? variantsResponse
             : [];
 
-        // Flatten fuel-type groups into a single list of variants
         const flatVariants: any[] = [];
         variantGroups.forEach((group: any) => {
           const fuelType = group?.fuelType;
@@ -204,18 +229,15 @@ const AddCardComponent: React.FC = () => {
         return ownershipOptions.map((option) => ({ value: String(option.id), label: option.label }));
       case 'kilometerDriven':
         return kilometerDrivenOptions.map((option) => ({ value: String(option.id), label: option.label }));
-      case 'location':
-        return locationOptions.map((option: string) => ({ value: option, label: option }));
       case 'price':
-        return []; // No options, manual input only
+        return [];
       case 'photos':
-        return []; // Custom component handles this step
+        return [];
       default:
         return [];
     }
   };
 
-  // Load options whenever the step or its dependencies change
   useEffect(() => {
     let isCancelled = false;
 
@@ -249,7 +271,6 @@ const AddCardComponent: React.FC = () => {
   const blockingMessage = getBlockingMessage(currentStepId);
 
   const handleOptionSelect = (value: string, label: string) => {
-    console.log('value', value, 'label', label);
     setSelections((prev) => {
       const updated: SelectionState = { ...prev, [currentStepId]: value };
       sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
@@ -258,15 +279,14 @@ const AddCardComponent: React.FC = () => {
       return updated;
     });
 
-    // When selecting a variant, also capture its fuel/transmission metadata
     if (currentStepId === 'variant') {
       const option = filteredOptions.find((o) => o.value === value) as StepOption | undefined;
       setSelectedVariantMeta(
         option
           ? {
-              fuelType: option.fuelType,
-              transmissionType: option.transmissionType,
-            }
+            fuelType: option.fuelType,
+            transmissionType: option.transmissionType,
+          }
           : null
       );
     }
@@ -283,7 +303,6 @@ const AddCardComponent: React.FC = () => {
     if (nextStep) {
       setCurrentStepId(nextStep.id);
     }
-    console.log("nextStep", nextStep);
   };
 
   const formatPrice = (value: string): string => {
@@ -353,20 +372,6 @@ const AddCardComponent: React.FC = () => {
     }
   };
 
-  const filteredCars = useMemo(() => {
-    return dummyInventory.filter((car) => {
-      if (selections.brand && car.brand !== selections.brand) return false;
-      if (selections.year && car.year !== selections.year) return false;
-      if (selections.model && car.model !== selections.model) return false;
-      if (selections.variant && car.variant !== selections.variant) return false;
-      if (selections.ownership && car.ownership !== selections.ownership) return false;
-      if (selections.kilometerDriven && car.kilometerDriven !== selections.kilometerDriven) return false;
-      if (selections.location && car.location !== selections.location) return false;
-      if (selections.price && car.priceRange !== selections.price) return false;
-      return true;
-    });
-  }, [selections]);
-
   const selectionCount = Object.values(selections).filter(Boolean).length;
 
   const resetFilters = () => {
@@ -375,13 +380,10 @@ const AddCardComponent: React.FC = () => {
     setCurrentStepId('brand');
     setUploadedPhotosCount(0);
     setUploadedPhotoPreviews([]);
+    clearStorageItem('sellCarDetails');
   };
 
-  useEffect(() => {
-    setUploadedPhotosCount(uploadedPhotoPreviews.length);
-  }, [uploadedPhotoPreviews]);
 
-  // Debounced effect to fetch location suggestions
   useEffect(() => {
     if (currentStepId !== 'location') {
       setLocationSuggestions([]);
@@ -392,7 +394,6 @@ const AddCardComponent: React.FC = () => {
     }
 
     const query = locationInput.trim();
-    // Require at least 3 characters before showing suggestions
     if (!query || query.length < 3) {
       setLocationSuggestions([]);
       setShowSuggestions(false);
@@ -405,7 +406,7 @@ const AddCardComponent: React.FC = () => {
       setIsLoadingLocations(true);
       try {
         const limit = 20;
-        const response = await fetchSellCarLocations(query, 1, limit);
+        const response = await getCitySuggestions(query, 1, limit);
         const items = Array.isArray(response?.data) ? response.data : [];
 
         setLocationSuggestions(items);
@@ -421,7 +422,7 @@ const AddCardComponent: React.FC = () => {
       } finally {
         setIsLoadingLocations(false);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
       clearTimeout(timeoutId);
@@ -437,9 +438,8 @@ const AddCardComponent: React.FC = () => {
     try {
       const limit = 20;
       const nextPage = locationPage + 1;
-      const response = await fetchSellCarLocations(query, nextPage, limit);
+      const response = await getCitySuggestions(query, nextPage, limit);
       const items = Array.isArray(response?.data) ? response.data : [];
-      console.log("responseeeeeeee", items);
 
       setLocationSuggestions((prev) => [...prev, ...items]);
       setHasMoreLocations(items.length === limit);
@@ -455,7 +455,7 @@ const AddCardComponent: React.FC = () => {
   const handleLocationScroll = (container: HTMLDivElement | null) => {
     if (!container) return;
     const { scrollTop, clientHeight, scrollHeight } = container;
-    const threshold = 40; // px from bottom to trigger load
+    const threshold = 40;
     if (scrollTop + clientHeight >= scrollHeight - threshold) {
       loadMoreLocations();
     }
@@ -468,12 +468,10 @@ const AddCardComponent: React.FC = () => {
 
     const stepIndex = sellFlowSteps.findIndex((step) => step.id === currentStepId);
 
-    // Create display label with city and pincode for header
     const displayLabel = suggestion.city && suggestion.pincode
       ? `${suggestion.city}, ${suggestion.pincode}`
       : suggestion.city || suggestion.pincode || formattedLocation;
 
-    // Store full location data
     setLocationData({
       formatted: suggestion.formatted || formattedLocation,
       city: suggestion.city || '',
@@ -489,8 +487,8 @@ const AddCardComponent: React.FC = () => {
     });
 
     setSelectionLabels((prev) => {
-      const updated: SelectionLabelState = { 
-        ...prev, 
+      const updated: SelectionLabelState = {
+        ...prev,
         location: displayLabel,
       };
       sellFlowSteps.slice(stepIndex + 1).forEach((step) => {
@@ -506,24 +504,28 @@ const AddCardComponent: React.FC = () => {
   };
 
   const isAllStepsCompleted = () => {
-    // Check if all steps have selections
     const allStepsHaveSelections = sellFlowSteps.every((step) => Boolean(selections[step.id]));
-
-    // If photos step is "upload-now", also check if at least 1 photo is uploaded
     if (selections.photos === 'upload-now') {
       return allStepsHaveSelections && uploadedPhotosCount >= 1;
     }
-
-    // For "need-help" option, just check if it's selected
     return allStepsHaveSelections;
   };
 
-  const handleViewDetails = () => {
+  const handleViewDetails = async () => {
     if (!isAllStepsCompleted()) return;
+
+    let uploadedFileKeys: string[] = [];
+    let uploadedFileUrls: string[] = [];
+
+    if (uploadedPhotoFiles.length > 0) {
+      const fileUploadRes = await postImageUpload(uploadedPhotoFiles);
+      uploadedFileKeys = fileUploadRes.data.map((file: any) => file.key);
+      uploadedFileUrls = fileUploadRes.data.map((file: any) => file.keyWithBaseUrl);
+    }
 
     if (typeof window !== 'undefined') {
       let storedPayload: any = null;
-      const raw = sessionStorage.getItem('sellCarDetails');
+      const raw = getStorageItem('sellCarDetails');
       if (raw) {
         try {
           storedPayload = JSON.parse(raw);
@@ -535,15 +537,15 @@ const AddCardComponent: React.FC = () => {
       const payload = {
         ...(storedPayload || {}),
         ...selections,
-        selectionLabels: selectionLabels,
-        locationData: locationData,
+        selectionLabels,
+        locationData,
         variantName: selectionLabels.variant,
         fuelType: selectedVariantMeta?.fuelType,
         transmissionType: selectedVariantMeta?.transmissionType,
-        photoPreviews: uploadedPhotoPreviews,
-        createdAt: new Date().toISOString(),
+        photoPreviews: uploadedFileUrls,
+        photoKeys: uploadedFileKeys,
       };
-      sessionStorage.setItem('sellCarDetails', JSON.stringify(payload));
+      setStorageItem('sellCarDetails', JSON.stringify(payload));
     }
 
     const params = new URLSearchParams();
@@ -552,7 +554,6 @@ const AddCardComponent: React.FC = () => {
         params.append(key, value);
       }
     });
-    // Also send human-readable variant name for display on details page
     if (selectionLabels.variant) {
       params.append('variantName', selectionLabels.variant);
     }
@@ -567,15 +568,6 @@ const AddCardComponent: React.FC = () => {
 
         {/* Step Header */}
         <div className="flex flex-wrap gap-1.5">
-          {/* Back Button */}
-          <Button
-            onClick={() => router.back()}
-            variant="secondary"
-            className="flex items-center px-1.5 py-1 rounded-full border text-base md:text-lg lg:text-xs font-medium hover:text-primary-600 transition-colors"
-          >
-            <ChevronLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </Button>
-          
           {/* Step Sub-Options */}
           {sellFlowSteps.map((step) => {
             const isActive = step.id === currentStepId;
@@ -719,7 +711,6 @@ const AddCardComponent: React.FC = () => {
                       }
                     }}
                     onBlur={() => {
-                      // Delay hiding suggestions to allow click events
                       setTimeout(() => setShowSuggestions(false), 200);
                     }}
                     autoFocus
@@ -780,8 +771,7 @@ const AddCardComponent: React.FC = () => {
         ) : currentStepId === 'photos' ? (
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
             <PhotosUpload
-              selectedValue={selections.photos}
-              initialPhotos={uploadedPhotoPreviews}
+              setUploadedPhotoFiles={setUploadedPhotoFiles}
               onSelectionChange={(value) => {
                 setSelections((prev) => {
                   const updated: SelectionState = { ...prev, photos: value };

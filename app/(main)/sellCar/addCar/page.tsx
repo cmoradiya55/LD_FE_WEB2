@@ -1,6 +1,6 @@
 import React from 'react';
-import AddCardComponent from './AddCardComponent';
 import { Metadata } from 'next';
+import AddCardComponent from './AddCardComponent';
 
 export const metadata: Metadata = {
   title: 'Add Car - AutoMarket',

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Car, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
+import { getStorageItem, setStorageItem } from '@/lib/storage';
 
 const RegistrationNumberComponent = () => {
     const router = useRouter();
@@ -11,12 +12,9 @@ const RegistrationNumberComponent = () => {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Format registration number (e.g., AB12CD1234 -> AB-12-CD-1234)
     const formatRegistrationNumber = (value: string) => {
-        // Remove all dashes, spaces and convert to uppercase
         const cleaned = value.replace(/[-\s]/g, '').toUpperCase();
         
-        // Format as: AB-12-CD-1234 (2 letters, 2 digits, 2 letters, 4 digits)
         if (cleaned.length <= 2) {
             return cleaned;
         } else if (cleaned.length <= 4) {
@@ -26,12 +24,11 @@ const RegistrationNumberComponent = () => {
         } else if (cleaned.length <= 10) {
             return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 10)}`;
         }
-        return cleaned.slice(0, 10); // Max 10 characters
+        return cleaned.slice(0, 10); 
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        // Allow only alphanumeric, dashes and spaces
         if (/^[A-Z0-9\s-]*$/i.test(value)) {
             const formatted = formatRegistrationNumber(value);
             setRegistrationNumber(formatted);
@@ -40,7 +37,6 @@ const RegistrationNumberComponent = () => {
     };
 
     const validateRegistrationNumber = (regNumber: string): boolean => {
-        // Use the provided regex pattern: /^[A-Z]{2}-[0-9]{2}-[A-Z]{2}-(?!0000)[0-9]{4}$/
         const regNumberRegex = /^[A-Z]{2}-[0-9]{2}-[A-Z]{2}-(?!0000)[0-9]{4}$/;
         
         if (!regNumberRegex.test(regNumber)) {
@@ -66,13 +62,10 @@ const RegistrationNumberComponent = () => {
         setIsSubmitting(true);
 
         try {
-            // Store registration number in sessionStorage
             const cleanedRegNumber = registrationNumber.replace(/[-\s]/g, '').toUpperCase();
-            
-            // Get existing sellCarDetails or create new
             let sellCarDetails: any = {};
             if (typeof window !== 'undefined') {
-                const stored = sessionStorage.getItem('sellCarDetails');
+                const stored = getStorageItem('sellCarDetails');
                 if (stored) {
                     try {
                         sellCarDetails = JSON.parse(stored);
@@ -81,17 +74,11 @@ const RegistrationNumberComponent = () => {
                     }
                 }
             }
-
-            // Add registration number to sellCarDetails
             sellCarDetails.registrationNumber = cleanedRegNumber;
             sellCarDetails.registrationNumberFormatted = registrationNumber;
-
-            // Save to sessionStorage
             if (typeof window !== 'undefined') {
-                sessionStorage.setItem('sellCarDetails', JSON.stringify(sellCarDetails));
+                setStorageItem('sellCarDetails', JSON.stringify(sellCarDetails));
             }
-
-            // Navigate to add car page
             router.push('/sellCar/addCar');
         } catch (err) {
             setError('Something went wrong. Please try again.');
@@ -100,7 +87,7 @@ const RegistrationNumberComponent = () => {
     };
 
     return (
-        <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 flex items-center justify-center px-4 overflow-hidden">
+        <div className="lg:pt-[5%] flex items-center justify-center px-4 overflow-hidden">
             <div className="w-full max-w-md">
                 {/* Header Section */}
                 <div className="text-center mb-4">
@@ -198,17 +185,6 @@ const RegistrationNumberComponent = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* Skip Option (Optional) */}
-                {/* <div className="mt-3 text-center">
-                    <button
-                        type="button"
-                        onClick={() => router.push('/sellCar/addCar')}
-                        className="text-sm text-slate-500 hover:text-slate-700 transition-colors underline"
-                    >
-                        Skip for now
-                    </button>
-                </div> */}
             </div>
         </div>
     );

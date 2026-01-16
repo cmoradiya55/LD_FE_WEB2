@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation';
 import { Heart, Car, Settings, Clock, LogOut, Shield, FileCheck, ChevronRight, ChevronDown, Cog } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
 import { ShoppingCart } from 'lucide-react';
-import { getUser } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 import { useQuery } from '@tanstack/react-query';
-import { logout as logoutApi } from '@/lib/auth';
+import { logout as logoutApi } from '@/utils/auth';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { generateUUID } from '@/lib/uuid';
 
@@ -57,12 +57,12 @@ export function ProfileLayout({ children }: ProfileLayoutProps) {
 
     // Get profile data from localStorage
     useEffect(() => {
-        const userData = getUser();
+        const userData = JSON.parse(getStorageItem('user') || '{}');
         setProfile(userData);
 
         // Listen for storage changes to update profile when it's changed
         const handleStorageChange = () => {
-            const updatedUser = getUser();
+            const updatedUser = JSON.parse(getStorageItem('user') || '{}');
             setProfile(updatedUser);
         };
 

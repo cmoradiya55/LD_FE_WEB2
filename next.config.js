@@ -27,6 +27,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'link-drive-media.s3.ap-south-1.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 }

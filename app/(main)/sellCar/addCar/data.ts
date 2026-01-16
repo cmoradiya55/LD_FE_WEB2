@@ -68,7 +68,7 @@ export const sellFlowSteps: StepMeta[] = [
   { id: 'kilometerDriven', label: 'Kilometer Driven', description: 'Approximate kilometers driven helps set expectations.' },
   { id: 'location', label: 'Location', description: 'Share the city where the car is located.' },
   { id: 'price', label: 'Price', description: 'Enter the expected selling price for your car.' },
-  { id: 'photos', label: 'Photos', description: 'Highlight how you plan to share images.' },
+  { id: 'photos', label: 'Photos', description: 'Upload photos of your car.' },
 ];
 
 const brandLogoEntries: Array<{ name: string; logo: string }> = [

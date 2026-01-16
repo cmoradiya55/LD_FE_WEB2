@@ -1,14 +1,8 @@
 'use client';
 
 import { FilterState } from './FilterSidebar';
-import { getUser } from '@/lib/storage';
 
-/**
- * Converts a FilterState object into a URL query string.
- * Only keys with a non-empty value are included.
- * Also includes cityId and isCityIncluded from localStorage user data.
- */
-export const buildQueryStringFromFilters = (filters: FilterState): string => {
+export const buildQueryStringFromFilters = (filters: FilterState, cityId?: string | null): string => {
   const params: string[] = [];
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -41,18 +35,9 @@ export const buildQueryStringFromFilters = (filters: FilterState): string => {
     params.push(`${encodeURIComponent(paramKey)}=${encodeURIComponent(stringValue)}`);
   });
 
-  // Add cityId and isCityIncluded from localStorage user data
-  // If cityId is provided, isCityIncluded is required by the API
-  const user = getUser();
-  if (user) {
-    if (user.cityId) {
-      params.push(`cityId=${encodeURIComponent(user.cityId)}`);
-      // Default to true if isCityIncluded is not set
-      const isCityIncluded = user.isCityIncluded !== undefined && user.isCityIncluded !== null 
-        ? user.isCityIncluded 
-        : true;
-      params.push(`isCityIncluded=${encodeURIComponent(String(isCityIncluded))}`);
-    }
+  if (cityId) {
+    params.push(`cityId=${encodeURIComponent(cityId)}`);
+    params.push(`isCityIncluded=true`);
   }
 
   return params.join('&');
