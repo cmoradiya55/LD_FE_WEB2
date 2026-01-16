@@ -79,82 +79,42 @@ const AddCardComponent: React.FC = () => {
 
     try {
       const carDetailsRaw = getStorageItem('sellCarDetails');
-      if (!carDetailsRaw) {
-        return;
-      }
+      
+      // Clear all previous selections and start fresh from brand step
+      setSelections({});
+      setSelectionLabels({});
+      setPriceInput('');
+      setLocationInput('');
+      setLocationData(null);
+      setSelectedVariantMeta(null);
+      setUploadedPhotoPreviews([]);
+      setUploadedPhotosCount(0);
+      setCurrentStepId('brand');
 
-      const carDetails = JSON.parse(carDetailsRaw);
-
-      const restoredSelections: SelectionState = {};
-
-      sellFlowSteps.forEach((step) => {
-        const value = carDetails[step.id] || carDetails.selections?.[step.id];
-        if (value !== undefined && value !== null && value !== '') {
-          restoredSelections[step.id] = String(value);
-        }
-      });
-
-      if (Object.keys(restoredSelections).length > 0) {
-        setSelections(restoredSelections);
-      }
-
-      if (carDetails.selectionLabels) {
-        setSelectionLabels(carDetails.selectionLabels);
-      }
-
-      const priceValue = carDetails.price || carDetails.selections?.price;
-      if (priceValue) {
-        const numericValue = String(priceValue).replace(/[₹,\s]/g, '');
-        setPriceInput(numericValue);
-      }
-
-      if (carDetails.locationData) {
-        setLocationData(carDetails.locationData);
-        setLocationInput(carDetails.locationData.formatted || carDetails.location || '');
-      } else {
-        const locationValue = carDetails.location || carDetails.selections?.location;
-        if (locationValue) {
-          setLocationInput(String(locationValue));
-        }
-      }
-
-      if (carDetails.fuelType || carDetails.transmissionType) {
-        setSelectedVariantMeta({
-          fuelType: carDetails.fuelType || undefined,
-          transmissionType: carDetails.transmissionType || undefined,
-        });
-      }
-
-      if (carDetails.photoPreviews && Array.isArray(carDetails.photoPreviews)) {
-        setUploadedPhotoPreviews(carDetails.photoPreviews);
-        setUploadedPhotosCount(carDetails.photoPreviews.length);
-      }
-
-      const firstIncompleteStep = sellFlowSteps.find((step) => {
-        return !restoredSelections[step.id];
-      });
-
-      if (firstIncompleteStep) {
-        setCurrentStepId(firstIncompleteStep.id);
-      } else {
-        const lastStep = sellFlowSteps[sellFlowSteps.length - 1];
-        if (lastStep) {
-          setCurrentStepId(lastStep.id);
+      // Only keep registrationNumber in localStorage, clear other selections
+      if (carDetailsRaw) {
+        const carDetails = JSON.parse(carDetailsRaw);
+        if (carDetails.registrationNumber) {
+          // Keep only registrationNumber, clear everything else
+          setStorageItem('sellCarDetails', JSON.stringify({
+            registrationNumber: carDetails.registrationNumber,
+            registrationNumberFormatted: carDetails.registrationNumberFormatted,
+          }));
         }
       }
     } catch (error) {
-      console.error('Unable to load car details from localStorage', error);
+      console.error('Unable to reset car details', error);
     }
   }, []);
 
   useEffect(() => {
     setSearchTerm('');
 
-    if (currentStepId === 'location' && selections.location) {
-      setLocationInput(selections.location);
+    if (currentStepId === 'location') {
+      setLocationInput('');
     }
-    if (currentStepId === 'price' && selections.price) {
-      setPriceInput(selections.price.replace(/[₹,\s]/g, ''));
+    if (currentStepId === 'price') {
+      setPriceInput('');
     }
 
     if (currentStepId !== 'variant') {

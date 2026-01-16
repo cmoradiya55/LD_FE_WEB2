@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, IndianRupee, Save, Image as ImageIcon } from "lucide-react";
+import { X, IndianRupee, Save, Image as ImageIcon, XCircle } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMyUsedCarDetail, patchApproveListingDelistingAndPriceUpdate } from "@/utils/auth";
 import { UsedCarListingStatus, ExteriorFields, EngineAndTransmissionFields, SteeringSuspensionAndBrakesFields, AirConditioningFields, ElectricalFields, InteriorFields, SeatsFields } from "@/lib/data";
@@ -10,6 +10,28 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import InspectionSummary from "./InspectionSummery";
 import StaffInspectionReport from "./StaffInspectionReport";
 import ImagePreview from "@/components/common/ImagePreview";
+
+// Default allFields structure
+const defaultAllFields = {
+    exterior: ExteriorFields,
+    engine: EngineAndTransmissionFields,
+    mechanical: SteeringSuspensionAndBrakesFields,
+    ac: AirConditioningFields,
+    electrical: ElectricalFields,
+    interior: InteriorFields,
+    seats: SeatsFields,
+};
+
+// All field definitions for lookup
+const allFieldDefinitions = [
+    ...ExteriorFields,
+    ...EngineAndTransmissionFields,
+    ...SteeringSuspensionAndBrakesFields,
+    ...AirConditioningFields,
+    ...ElectricalFields,
+    ...InteriorFields,
+    ...SeatsFields,
+];
 
 interface InspectionReportModalProps {
     isOpen: boolean;
@@ -27,9 +49,13 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [price, setPrice] = useState<string>("");
+    const [customerExpectedPrice, setCustomerExpectedPrice] = useState<string>("");
+    const [originalCustomerExpectedPrice, setOriginalCustomerExpectedPrice] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [showRejectForm, setShowRejectForm] = useState(false);
+    const [rejectReason, setRejectReason] = useState<string>("");
 
-    // Determine if user is admin (adjust based on your user object structure)
     const isAdmin = user?.role === "admin" || user?.userType === "admin" || user?.isAdmin === true;
 
     // Fetch data only if carData is not provided
@@ -54,20 +80,31 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     // Use carData if provided, otherwise use fetched data
     const data = carData || fetchedData;
 
-    // Initialize price from car data
     useEffect(() => {
-        if (data) {
-            const currentStatus = data?.status;
+        if (!data) {
+            setPrice("");
+            setCustomerExpectedPrice("");
+            setOriginalCustomerExpectedPrice("");
+            return;
+        }
 
-            if (currentStatus === UsedCarListingStatus.APPROVED_BY_ADMIN) {
-                const finalPrice = data?.final_price || data?.finalPrice;
-                setPrice(finalPrice ? String(finalPrice) : "");
-            } else if (currentStatus === UsedCarListingStatus.APPROVED_BY_MANAGER && isAdmin) {
-                const managerPrice = data?.managerSuggestedPrice;
-                setPrice(managerPrice ? String(managerPrice) : "");
-            } else {
-                setPrice("");
-            }
+        const currentStatus = data?.status;
+        if (currentStatus === UsedCarListingStatus.APPROVED_BY_ADMIN) {
+            const finalPrice = data?.final_price || data?.finalPrice;
+            setPrice(finalPrice ? String(finalPrice) : "");
+            
+            const customerPrice = data?.customerExpectedPrice || data?.customer_expected_price;
+            const customerPriceStr = customerPrice ? String(customerPrice) : "";
+            setCustomerExpectedPrice(customerPriceStr);
+            setOriginalCustomerExpectedPrice(customerPriceStr);
+        } else if (currentStatus === UsedCarListingStatus.APPROVED_BY_MANAGER && isAdmin) {
+            setPrice(data?.managerSuggestedPrice ? String(data.managerSuggestedPrice) : "");
+            setCustomerExpectedPrice("");
+            setOriginalCustomerExpectedPrice("");
+        } else {
+            setPrice("");
+            setCustomerExpectedPrice("");
+            setOriginalCustomerExpectedPrice("");
         }
     }, [data, isAdmin]);
 
@@ -76,116 +113,113 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         setPrice(value);
     };
 
-    const handleSubmitPrice = async () => {
-        if (!price || parseFloat(price) <= 0 || !carId) return;
+    const handleCustomerExpectedPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/[^0-9.]/g, "");
+        setCustomerExpectedPrice(value);
+    };
+
+    const isPriceUpdated = customerExpectedPrice !== originalCustomerExpectedPrice;
+
+    const handleSubmit = async () => {
+        if (!carId) return;
 
         setIsSubmitting(true);
         try {
-            const payload = {
-                price: parseFloat(price),
-            };
+            const payload: any = { status: 1 };
+            
+            // Include price only if it was updated
+            if (isPriceUpdated && customerExpectedPrice && parseFloat(customerExpectedPrice) > 0) {
+                payload.price = parseFloat(customerExpectedPrice);
+            }
 
             const response = await patchApproveListingDelistingAndPriceUpdate(String(carId), payload);
 
             if (response?.code === 200) {
-                // Refetch car details
                 await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_DETAIL", carId] });
-                setPrice("");
-            } else {
-                alert(response?.message || "Failed to save price");
+                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_LIST"] });
+                // Update original price to current value after successful submit
+                setOriginalCustomerExpectedPrice(customerExpectedPrice);
             }
-        } catch (error: any) {
-            console.error("Error submitting price:", error);
-            alert(error?.message || "Failed to save price");
+        } catch (error) {
+            // Error handling can be improved with toast notifications
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Default allFields structure
-    const defaultAllFields = {
-        exterior: ExteriorFields,
-        engine: EngineAndTransmissionFields,
-        mechanical: SteeringSuspensionAndBrakesFields,
-        ac: AirConditioningFields,
-        electrical: ElectricalFields,
-        interior: InteriorFields,
-        seats: SeatsFields,
+    const handleRejectClick = () => {
+        setShowRejectForm(true);
     };
 
-    // Transform inspection images from API to formValues and allFields
-    const transformInspectionData = (apiData: any) => {
+    const handleRejectCancel = () => {
+        setShowRejectForm(false);
+        setRejectReason("");
+    };
+
+    const handleRejectSubmit = async () => {
+        if (!carId || !rejectReason.trim()) return;
+
+        setIsRejecting(true);
         try {
-            if (!apiData || !apiData.inspectionImages || !Array.isArray(apiData.inspectionImages)) {
-                return {
-                    allFields: defaultAllFields,
-                    formValues: {},
-                };
+            const response = await patchApproveListingDelistingAndPriceUpdate(String(carId), {
+                status: 2,
+                reason: rejectReason.trim(),
+            });
+
+            if (response?.code === 200) {
+                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_DETAIL", carId] });
+                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_LIST"] });
+                setShowRejectForm(false);
+                setRejectReason("");
+                onClose();
             }
-
-            // Create a map of all field definitions by type and sub_type
-            const allFieldDefinitions = [
-                ...ExteriorFields,
-                ...EngineAndTransmissionFields,
-                ...SteeringSuspensionAndBrakesFields,
-                ...AirConditioningFields,
-                ...ElectricalFields,
-                ...InteriorFields,
-                ...SeatsFields,
-            ];
-
-            // Create a lookup map: type_subtype -> field definition
-            const fieldMap = new Map<string, any>();
-            allFieldDefinitions.forEach((field) => {
-                const key = `${field.type}_${field.sub_type}`;
-                fieldMap.set(key, field);
-            });
-
-            // Transform inspectionImages to formValues
-            // API now returns flat array with: type, subType, imageUrl, isDamage, remarks, treadDepth, etc.
-            const formValues: Record<string, any> = {};
-            
-            apiData.inspectionImages.forEach((image: any) => {
-                if (image && image.type !== undefined && image.subType !== undefined && image.imageUrl) {
-                    const key = `${image.type}_${image.subType}`;
-                    const fieldDef = fieldMap.get(key);
-                    
-                    if (fieldDef) {
-                        // Convert isDamage boolean to "yes"/"no" string format
-                        let damage: string | undefined = undefined;
-                        if (image.isDamage !== undefined && image.isDamage !== null) {
-                            damage = image.isDamage ? "yes" : "no";
-                        }
-                        
-                        // Create form value entry with all available data
-                        formValues[fieldDef.name] = {
-                            image: image.imageUrl,
-                            damage: damage,
-                            remarks: image.remarks || undefined,
-                            treadDepth: image.treadDepth || undefined,
-                            tread_depth: image.treadDepth || undefined, // Support both naming conventions
-                            electrical_type: image.isPower !== undefined ? (image.isPower ? "power" : "manual") : undefined,
-                        };
-                    }
-                }
-            });
-
-            return { 
-                allFields: defaultAllFields, 
-                formValues 
-            };
         } catch (error) {
-            console.error("Error transforming inspection data:", error);
-            return {
-                allFields: defaultAllFields,
-                formValues: {},
-            };
+            // Error handling can be improved with toast notifications
+        } finally {
+            setIsRejecting(false);
         }
+    };
+
+    // Transform inspection images from API to formValues
+    const transformInspectionData = (apiData: any) => {
+        if (!apiData?.inspectionImages || !Array.isArray(apiData.inspectionImages)) {
+            return { allFields: defaultAllFields, formValues: {} };
+        }
+
+        // Create lookup map: type_subtype -> field definition
+        const fieldMap = new Map<string, any>();
+        allFieldDefinitions.forEach((field) => {
+            fieldMap.set(`${field.type}_${field.sub_type}`, field);
+        });
+
+        // Transform inspectionImages to formValues
+        const formValues: Record<string, any> = {};
+        apiData.inspectionImages.forEach((image: any) => {
+            if (!image?.type || !image?.subType || !image?.imageUrl) return;
+
+            const key = `${image.type}_${image.subType}`;
+            const fieldDef = fieldMap.get(key);
+            if (!fieldDef) return;
+
+            formValues[fieldDef.name] = {
+                image: image.imageUrl,
+                damage: image.isDamage !== undefined && image.isDamage !== null 
+                    ? (image.isDamage ? "yes" : "no") 
+                    : undefined,
+                remarks: image.remarks || undefined,
+                treadDepth: image.treadDepth || undefined,
+                tread_depth: image.treadDepth || undefined,
+                electrical_type: image.isPower !== undefined 
+                    ? (image.isPower ? "power" : "manual") 
+                    : undefined,
+            };
+        });
+
+        return { allFields: defaultAllFields, formValues };
     };
 
     if (!isOpen) return null;
 
-    // Show loading state if data is being fetched and not provided
     if (!carData && isLoading) {
         return (
             <div className="w-full h-full fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4">
@@ -200,7 +234,6 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     }
 
     const transformedData = data ? transformInspectionData(data) : { allFields: defaultAllFields, formValues: {} };
-    
     const mergedFormValues = {
         registrationNumber: data?.registrationNumber,
         registartionYear: data?.registrationYear,
@@ -209,8 +242,6 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         insurance_image: data?.insuranceImage,
         ...transformedData.formValues,
     };
-    
-    const car = data;
 
     return (
         <div className="w-full h-full fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4">
@@ -240,9 +271,9 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                         allFields={transformedData.allFields || defaultAllFields}
                     />
                     <StaffInspectionReport
-                        inspectionData={car?.staffReport || {}}
-                        formValues={car?.staffReport || {}}
-                        carDetailsData={car || {}}
+                        inspectionData={data?.staffReport || {}}
+                        formValues={data?.staffReport || {}}
+                        carDetailsData={data || {}}
                         isLoading={isLoading}
                         onClose={onClose}
                         renderWithoutDialog={true}
@@ -250,7 +281,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                     />
 
                     {/* Customer Uploaded Images */}
-                    {car?.customerPhotos && car.customerPhotos.length > 0 && (
+                    {data?.customerPhotos && data.customerPhotos.length > 0 && (
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                             {/* Customer Images Header */}
                             <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-2.5 border-b border-gray-200">
@@ -261,7 +292,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                     <h3 className="text-base font-bold text-gray-900">
                                         Customer Uploaded Images
                                         <span className="ml-2 text-sm font-semibold text-gray-600">
-                                            ({car.customerPhotos.length})
+                                            ({data.customerPhotos.length})
                                         </span>
                                     </h3>
                                 </div>
@@ -270,7 +301,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                             {/* Customer Images Content */}
                             <div className="p-4">
                                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2.5">
-                                    {car.customerPhotos.map((photo: any, index: number) => (
+                                    {data.customerPhotos.map((photo: any, index: number) => (
                                         <div
                                             key={photo.id || index}
                                             className="group relative aspect-square rounded-lg border border-gray-200 bg-gray-50 overflow-hidden hover:border-primary-400 hover:shadow-lg transition-all duration-200"
@@ -311,61 +342,173 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                         {/* Price Details Content */}
                         <div className="p-4">
                             {(() => {
-                                const currentStatus = car?.status;
+                                const currentStatus = data?.status;
 
+                                // If Status code = 700 then show the price details
                                 if (currentStatus === UsedCarListingStatus.APPROVED_BY_ADMIN) {
+                                    const finalPrice = data?.final_price || data?.finalPrice;
+                                    
                                     return (
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
+                                            {/* Final Price Display */}
+                                            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary-50 to-green-50 border border-primary-200/50 p-3 shadow-sm">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <div className="p-1 rounded-md bg-primary-100">
+                                                        <IndianRupee className="h-3 w-3 text-primary-600" />
+                                                    </div>
+                                                    <span className="text-[10px] font-semibold text-primary-600 uppercase tracking-wide">
+                                                        Final Price
+                                                    </span>
+                                                </div>
+                                                <p className="text-lg font-bold text-primary-700">
+                                                    {finalPrice 
+                                                        ? `₹${Number(finalPrice).toLocaleString('en-IN')}`
+                                                        : <span className="text-gray-400 text-sm">Not Available</span>
+                                                    }
+                                                </p>
+                                            </div>
+
+                                            {/* Customer Expected Price Input */}
                                             <div>
-                                                <label htmlFor="price" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                    Enter Price
+                                                <label htmlFor="customerExpectedPrice" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                                    Customer Expected Price
                                                 </label>
                                                 <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <span className="text-gray-500 text-lg font-medium">₹</span>
+                                                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                                        <span className="text-gray-500 text-sm font-medium">₹</span>
                                                     </div>
                                                     <input
-                                                        id="price"
+                                                        id="customerExpectedPrice"
                                                         type="text"
-                                                        value={price}
-                                                        onChange={handlePriceChange}
-                                                        placeholder="Enter price amount"
-                                                        className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-lg bg-slate-50/50 focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400"
+                                                        value={customerExpectedPrice}
+                                                        onChange={handleCustomerExpectedPriceChange}
+                                                        placeholder="Enter customer expected price"
+                                                        className="w-1/2 pl-7 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-slate-50/50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400"
                                                     />
                                                 </div>
-                                                {price && (
-                                                    <p className="mt-2 text-xs text-gray-600">
-                                                        Amount: ₹{parseFloat(price || '0').toLocaleString('en-IN')}
+                                                {customerExpectedPrice && (
+                                                    <p className="mt-1 text-[10px] text-gray-600">
+                                                        Amount: ₹{parseFloat(customerExpectedPrice || '0').toLocaleString('en-IN')}
+                                                    </p>
+                                                )}
+                                                {isPriceUpdated && (
+                                                    <p className="mt-1 text-[10px] text-primary-600 font-medium">
+                                                        Price has been updated
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="flex justify-end">
-                                                <Button
-                                                    onClick={handleSubmitPrice}
-                                                    disabled={!price || parseFloat(price) <= 0 || isSubmitting}
-                                                    variant="primary"
-                                                    className="flex items-center gap-2 px-6 py-2.5"
-                                                >
-                                                    <Save className="h-4 w-4" />
-                                                    {isSubmitting ? 'Saving...' : 'Save Price'}
-                                                </Button>
-                                            </div>
+
+                                            {/* Reject Reason Form */}
+                                            {showRejectForm && (
+                                                <div className="space-y-2.5 p-3 rounded-lg bg-red-50 border border-red-200">
+                                                    <div>
+                                                        <label htmlFor="rejectReason" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                                            Reason for Rejection <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <textarea
+                                                            id="rejectReason"
+                                                            value={rejectReason}
+                                                            onChange={(e) => setRejectReason(e.target.value)}
+                                                            placeholder="Enter reason for rejection..."
+                                                            rows={3}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:border-red-400 focus:ring-1 focus:ring-red-400/20 transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400 resize-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            onClick={handleRejectCancel}
+                                                            disabled={isRejecting}
+                                                            variant="secondary"
+                                                            className="flex items-center gap-1.5 px-4 py-1.5 text-sm"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleRejectSubmit}
+                                                            disabled={isRejecting || !rejectReason.trim()}
+                                                            variant="reject"
+                                                            className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                        >
+                                                            <XCircle className="h-3.5 w-3.5" />
+                                                            {isRejecting ? 'Rejecting...' : 'Reject'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            {!showRejectForm && (
+                                                <div className="flex items-center justify-end gap-3 pt-1">
+                                                    <Button
+                                                        onClick={handleRejectClick}
+                                                        disabled={isRejecting || isSubmitting}
+                                                        variant="reject"
+                                                        className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                    >
+                                                        <XCircle className="h-3.5 w-3.5" />
+                                                        Reject
+                                                    </Button>
+                                                    <Button
+                                                        onClick={handleSubmit}
+                                                        disabled={isSubmitting || isRejecting}
+                                                        variant="accept"
+                                                        className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                    >
+                                                        <Save className="h-3.5 w-3.5" />
+                                                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 }
 
+                                // If Status code = 800 then show the listed price
                                 if (currentStatus === UsedCarListingStatus.LISTED) {
-                                    const finalPrice = car?.final_price || car?.finalPrice;
+                                    const finalPrice = data?.final_price || data?.finalPrice;
+                                    const customerExpectedPrice = data?.customerExpectedPrice || data?.customer_expected_price;
+                                    
                                     return (
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Final Price
-                                            </label>
-                                            <div className="p-4 rounded-lg bg-primary-50 border-2 border-primary-200">
-                                                <p className="text-2xl font-bold text-primary-700">
-                                                    ₹{finalPrice ? finalPrice.toLocaleString('en-IN') : 'N/A'}
-                                                </p>
+                                        <div className="space-y-2">
+                                            {/* Price Comparison Grid */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                {/* Customer Expected Price */}
+                                                <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 p-3 shadow-sm hover:shadow-md transition-all duration-200">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <div className="p-1 rounded-md bg-blue-100">
+                                                            <IndianRupee className="h-3 w-3 text-blue-600" />
+                                                        </div>
+                                                        <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">
+                                                            Customer Expected
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-lg font-bold text-blue-700">
+                                                        {customerExpectedPrice 
+                                                            ? `₹${Number(customerExpectedPrice).toLocaleString('en-IN')}`
+                                                            : <span className="text-gray-400 text-sm">Not Available</span>
+                                                        }
+                                                    </p>
+                                                </div>
+
+                                                {/* Final Price */}
+                                                <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary-50 to-green-50 border border-primary-200/50 p-3 shadow-sm hover:shadow-md transition-all duration-200">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <div className="p-1 rounded-md bg-primary-100">
+                                                            <IndianRupee className="h-3 w-3 text-primary-600" />
+                                                        </div>
+                                                        <span className="text-[10px] font-semibold text-primary-600 uppercase tracking-wide">
+                                                            Final Price
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-lg font-bold text-primary-700">
+                                                        {finalPrice 
+                                                            ? `₹${Number(finalPrice).toLocaleString('en-IN')}`
+                                                            : <span className="text-gray-400 text-sm">Not Available</span>
+                                                        }
+                                                    </p>
+                                                </div>
                                             </div>
+
                                         </div>
                                     );
                                 }
@@ -387,5 +530,3 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
 };
 
 export default InspectionReportModal;
-
-

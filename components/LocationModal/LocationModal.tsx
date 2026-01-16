@@ -4,7 +4,8 @@ import { MapPin, X, Search } from 'lucide-react';
 import { Button } from '@/components/Button/Button';
 import { useState } from 'react';
 import { updateCity } from '@/utils/auth';
-import { getStorageItem, setStorageItem } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
+import { useCity } from '@/components/providers/CityProvider';
 interface CityData {
   id: number;
   stateName: string;
@@ -13,14 +14,15 @@ interface CityData {
 interface LocationModalProps {
   open: boolean;
   selectedCity: CityData | null;
-  setSelectedCity: (city: CityData | null ) => void;
+  setSelectedCity: (city: CityData | null) => void;
   onClose: () => void;
   activeCitiesData: CityData[];
 }
 
-export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
+export function LocationModal({ selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { setCity } = useCity();
 
   const handleClose = () => {
     setLocationSearch('');
@@ -37,27 +39,27 @@ export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeC
     setSelectedCity(city);
   }
 
-  const handleApply = async() => {
+  const handleApply = async () => {
     setIsLoading(true);
     if (!selectedCity || !activeCitiesData) {
       handleClose();
       return;
     }
-    
+
     console.log('selectedCity', selectedCity);
-    if(getStorageItem('token')) {
+    if (getStorageItem('token')) {
       console.log('selectedCity?.id', selectedCity?.id);
       const updateCityResponse = await updateCity(selectedCity?.id, {})
 
 
       console.log('updateCityResponse', updateCityResponse);
       if (updateCityResponse.code === 200) {
-        setStorageItem('city', String(selectedCity.id));
+        setCity(selectedCity);
         setIsLoading(false);
         handleClose();
       }
     } else {
-      setStorageItem('city', String(selectedCity.id));
+      setCity(selectedCity);
       handleClose();
       return;
     }
@@ -88,17 +90,6 @@ export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeC
         </div>
 
         <div className="px-4 pt-3 pb-4 space-y-4">
-          {/* Search */}
-          {/* <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={locationSearch}
-              onChange={(e) => setLocationSearch(e.target.value)}
-              placeholder="Search city"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/60 focus:border-primary-500 placeholder:text-slate-400"
-            />
-          </div> */}
 
           {/* Popular cities */}
           <div>
@@ -111,11 +102,10 @@ export function  LocationModal({ selectedCity, setSelectedCity, onClose, activeC
                   onClick={() => {
                     handleSelectCity(city);
                   }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-colors ${
-                    selectedCity?.cityName === city.cityName
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-colors ${selectedCity?.cityName === city.cityName
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
                       : 'border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50/70 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <span className="truncate">{city.cityName}</span>
                   {selectedCity?.cityName === city.cityName && (
