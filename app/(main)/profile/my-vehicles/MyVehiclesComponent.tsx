@@ -122,6 +122,7 @@ const MyVehiclesComponent = () => {
                                     car={car}
                                     showActions={false}
                                     showFavorite={false}
+                                    showStatusBadge={true}
                                 />
                             </div>
                             {(car.status === UsedCarListingStatus.APPROVED_BY_ADMIN ||

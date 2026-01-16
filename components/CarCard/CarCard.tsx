@@ -12,7 +12,59 @@ import {
   UserRoundCheck,
   CheckCircle2,
   Clock,
+  XCircle,
+  AlertCircle,
+  Ban,
+  UserRound,
+  FileText,
 } from 'lucide-react';
+import { UsedCarListingStatus } from '@/lib/data';
+
+interface StatusBadgeConfig {
+  bg: string;
+  text: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}
+
+// Status badge configuration helper
+const getStatusBadgeConfig = (status: number | string | undefined): StatusBadgeConfig | null => {
+  if (!status) return null;
+  const statusNum = typeof status === 'string' ? parseInt(status, 10) : status;
+
+  switch (statusNum) {
+    case UsedCarListingStatus.PENDING:
+      return { bg: 'bg-gray-500', text: 'text-white', icon: Clock, label: 'Pending' };
+    case UsedCarListingStatus.INSPECTOR_ASSIGNED:
+      return { bg: 'bg-blue-500', text: 'text-white', icon: UserRound, label: 'Inspector Assigned' };
+    case UsedCarListingStatus.INSPECTION_STARTED:
+      return { bg: 'bg-yellow-500', text: 'text-white', icon: Clock, label: 'Inspection Started' };
+    case UsedCarListingStatus.INSPECTION_COMPLETED:
+      return { bg: 'bg-emerald-500', text: 'text-white', icon: CheckCircle2, label: 'Inspection Completed' };
+    case UsedCarListingStatus.DETAILS_UPDATED_BY_STAFF:
+      return { bg: 'bg-purple-500', text: 'text-white', icon: FileText, label: 'Details Updated' };
+    case UsedCarListingStatus.APPROVED_BY_MANAGER:
+      return { bg: 'bg-indigo-500', text: 'text-white', icon: BadgeCheck, label: 'Approved by Manager' };
+    case UsedCarListingStatus.APPROVED_BY_ADMIN:
+      return { bg: 'bg-primary-500', text: 'text-white', icon: CheckCircle2, label: 'Approved by Admin' };
+    case UsedCarListingStatus.LISTED:
+      return { bg: 'bg-green-500', text: 'text-white', icon: CheckCircle2, label: 'Listed' };
+    case UsedCarListingStatus.SOLD:
+      return { bg: 'bg-purple-600', text: 'text-white', icon: CheckCircle2, label: 'Sold' };
+    case UsedCarListingStatus.REJECTED_BY_MANAGER:
+      return { bg: 'bg-red-500', text: 'text-white', icon: XCircle, label: 'Rejected by Manager' };
+    case UsedCarListingStatus.REJECTED_BY_ADMIN:
+      return { bg: 'bg-red-500', text: 'text-white', icon: XCircle, label: 'Rejected by Admin' };
+    case UsedCarListingStatus.REJECTED_BY_CUSTOMER:
+      return { bg: 'bg-red-500', text: 'text-white', icon: XCircle, label: 'Rejected by Customer' };
+    case UsedCarListingStatus.EXPIRED:
+      return { bg: 'bg-orange-500', text: 'text-white', icon: AlertCircle, label: 'Expired' };
+    case UsedCarListingStatus.CANCELLED:
+      return { bg: 'bg-gray-500', text: 'text-white', icon: Ban, label: 'Cancelled' };
+    default:
+      return { bg: 'bg-gray-500', text: 'text-white', icon: Clock, label: 'Unknown' };
+  }
+};
 
 interface CarCardProps {
   car: any;
@@ -47,6 +99,10 @@ const CarCard: React.FC<CarCardProps> = ({
     car.managerSuggestedPrice ??
     (typeof car.price === 'number' && car.price > 0
       ? `₹${car.price.toLocaleString('en-IN')}/-`
+      : typeof car.price === 'string' && car.price && car.price !== '0'
+      ? car.price.includes('₹') ? car.price : `₹${Number(car.price).toLocaleString('en-IN')}/-`
+      : car.final_price && typeof car.final_price === 'number' && car.final_price > 0
+      ? `₹${car.final_price.toLocaleString('en-IN')}/-`
       : '');
 
   const kmsDriven =
@@ -67,7 +123,8 @@ const CarCard: React.FC<CarCardProps> = ({
     car.location ??
     [car.areaName, car.cityName].filter(Boolean).join(', ');
 
-  const effectiveStatusText = statusBadgeText ?? car.statusLabel;
+  const statusConfig = getStatusBadgeConfig(car.status);
+  const statusLabel = statusBadgeText ?? car.statusLabel ?? statusConfig?.label ?? '';
 
   const customerExpectedValue =
     car.customerExpectedPrice ??
@@ -75,17 +132,11 @@ const CarCard: React.FC<CarCardProps> = ({
       ? `₹${car.price.toLocaleString('en-IN')}/-`
       : '');
 
-  const handleClick = () => {
-    if (onClick) {
-      onClick(car.id);
-    }
-  };
+  const handleClick = () => onClick?.(car.id);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onFavoriteClick) {
-      onFavoriteClick(e, car.id);
-    }
+    onFavoriteClick?.(e, car.id);
   };
 
   return (
@@ -130,26 +181,19 @@ const CarCard: React.FC<CarCardProps> = ({
               {year}
             </div>
 
-            {/* Status Badge (used by Manager lists) */}
-            {showStatusBadge && effectiveStatusText && (
-              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
-                {String(effectiveStatusText).includes('Completed') ? (
-                  <div className="flex items-center gap-1.5 bg-green-500 text-white px-2 py-1 rounded-full shadow-lg">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span className="text-[11px] font-semibold">
-                      {effectiveStatusText}
-                    </span>
+            {/* Status Badge */}
+            {showStatusBadge && statusLabel && (() => {
+              const config = statusConfig || { bg: 'bg-gray-500', text: 'text-white', icon: Clock, label: statusLabel };
+              const Icon = config.icon;
+              return (
+                <div className={`absolute ${shouldShowFavorite ? 'top-10 sm:top-12' : 'top-2 sm:top-3'} right-2 sm:right-3 z-20`}>
+                  <div className={`flex items-center gap-1.5 ${config.bg} ${config.text} px-2 py-1 rounded-full shadow-lg`}>
+                    <Icon className="h-3 w-3" />
+                    <span className="text-[11px] font-semibold">{statusLabel}</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 bg-amber-500 text-white px-2 py-1 rounded-full shadow-lg">
-                    <Clock className="h-3 w-3" />
-                    <span className="text-[11px] font-semibold">
-                      {effectiveStatusText}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Badge - Assured or Private Seller */}
@@ -204,24 +248,18 @@ const CarCard: React.FC<CarCardProps> = ({
 
           {/* Specs Grid */}
           <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-1.5 sm:pt-2 border-t border-gray-100">
-            <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg bg-gray-100 group-hover:bg-primary-100 transition-colors duration-300">
-              <Gauge className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-600 group-hover:text-primary-600 transition-colors" />
-              <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center leading-tight">
-                {kmsDriven}
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg bg-gray-100 group-hover:bg-primary-100 transition-colors duration-300">
-              <Fuel className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-600 group-hover:text-primary-600 transition-colors" />
-              <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center leading-tight">
-                {car.fuelType}
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg bg-gray-100 group-hover:bg-primary-100 transition-colors">
-              <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-600 group-hover:text-primary-600 transition-colors" />
-              <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center leading-tight">
-                {transmission}
-              </span>
-            </div>
+            {[
+              { icon: Gauge, label: kmsDriven },
+              { icon: Fuel, label: car.fuelType },
+              { icon: Car, label: transmission },
+            ].map(({ icon: Icon, label }, index) => (
+              <div key={index} className="flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg bg-gray-100 group-hover:bg-primary-100 transition-colors duration-300">
+                <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-600 group-hover:text-primary-600 transition-colors" />
+                <span className="text-[10px] sm:text-xs font-medium text-gray-700 text-center leading-tight">
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
 
           {/* Owner Badge */}
@@ -234,12 +272,14 @@ const CarCard: React.FC<CarCardProps> = ({
         </div>
 
         {/* Location Badge */}
-        <div className="flex items-center justify-between pt-1">
-          <div className="inline-flex items-center gap-1 w-full sm:gap-1.5 bg-gray-100 px-2 py-0.5 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-[13px] font-medium text-gray-600 rounded-b-lg group-hover:text-primary-600 transition-colors">
-            <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-600 font-bold group-hover:text-primary-600 transition-colors" />
-            <span className="line-clamp-1">{location}</span>
+        {location && (
+          <div className="flex items-center justify-between pt-1">
+            <div className="inline-flex items-center gap-1 w-full sm:gap-1.5 bg-gray-100 px-2 py-0.5 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-[13px] font-medium text-gray-600 rounded-b-lg group-hover:text-primary-600 transition-colors">
+              <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-600 font-bold group-hover:text-primary-600 transition-colors" />
+              <span className="line-clamp-1">{location}</span>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

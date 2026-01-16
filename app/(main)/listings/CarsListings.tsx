@@ -9,7 +9,17 @@ const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Listing+image+coming+soon';
 
 
-const CarsListings = ({ listings, loading, error }: { listings: CarData[], loading: boolean, error: string | null }) => {
+const CarsListings = ({ 
+  listings, 
+  loading, 
+  error,
+  onCarClick 
+}: { 
+  listings: CarData[]; 
+  loading: boolean; 
+  error: string | null;
+  onCarClick?: (carId: string | number) => void;
+}) => {
  
   const content = useMemo(() => {
     if (loading) {
@@ -42,8 +52,12 @@ const CarsListings = ({ listings, loading, error }: { listings: CarData[], loadi
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {listings.map((car) => (
-              <div key={car.id} className="relative">
-                <CarCard car={car} showActions={true} />
+              <div key={car.id} className="relative border border-gray-200 rounded-xl">
+                <CarCard 
+                  car={car} 
+                  showActions={true}
+                  onClick={onCarClick}
+                />
               </div>
             ))}
           </div>

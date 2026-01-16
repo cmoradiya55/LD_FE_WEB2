@@ -24,10 +24,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/Button/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { LocationModal } from '../LocationModal/LocationModal';
-import { getStorageItem, setStorageItem } from '@/lib/storage';
+import { getStorageItem } from '@/lib/storage';
 import { useQuery } from '@tanstack/react-query';
 import { getActiveCities, logout as logoutApi } from '@/utils/auth';
 import { generateUUID } from '@/lib/uuid';
+import { useCity } from '@/components/providers/CityProvider';
 
 interface CityData {
   id: number;
@@ -35,10 +36,23 @@ interface CityData {
   cityName: string;
 }
 
-function LocationButton({ selectedCity, onClick }: { 
+interface ProfileMenuItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+function LocationButton({ 
+  selectedCity, 
+  storedLocationName,
+  onClick 
+}: { 
   selectedCity: CityData | null; 
+  storedLocationName?: string | null;
   onClick: () => void;
 }) {
+  const displayLocation = selectedCity?.cityName || storedLocationName || 'Location';
+  
   return (
     <Button
       variant="ghost"
@@ -47,9 +61,35 @@ function LocationButton({ selectedCity, onClick }: {
     >
       <MapPin className="w-4 h-4 text-slate-600" />
       <span className="text-sm font-medium text-slate-700">
-        {selectedCity?.cityName || 'Location'}
+        {displayLocation}
       </span>
     </Button>
+  );
+}
+
+function ProfileMenuLink({ 
+  item, 
+  onClose 
+}: { 
+  item: ProfileMenuItem; 
+  onClose: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
+      onClick={onClose}
+    >
+      <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
+        <Icon className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
+          {item.label}
+        </p>
+      </div>
+    </Link>
   );
 }
 
@@ -57,33 +97,54 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, logout } = useAuth();
+  const { cityId, selectedCity: contextSelectedCity, setCity } = useCity();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRefMobile = useRef<HTMLDivElement>(null);
   const profileMenuRefDesktop = useRef<HTMLDivElement>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState<CityData | null>(null);
+  const [selectedCity, setSelectedCity] = useState<CityData | null>(contextSelectedCity || null);
 
   const user = JSON.parse(getStorageItem('user') || '{}');
-  const cityId = getStorageItem('city');
+  
+  // Get location from localStorage (sellCarDetails)
+  const getLocationFromStorage = () => {
+    try {
+      const sellCarDetails = getStorageItem('sellCarDetails');
+      if (sellCarDetails) {
+        const parsed = JSON.parse(sellCarDetails);
+        // Check for locationData first (has city name)
+        if (parsed.locationData?.city) {
+          return parsed.locationData.city;
+        }
+        // Check for selectionLabels.location (formatted location string)
+        if (parsed.selectionLabels?.location) {
+          return parsed.selectionLabels.location;
+        }
+      }
+    } catch (error) {
+      console.error('Error reading location from localStorage', error);
+    }
+    return null;
+  };
+
+  const storedLocationName = getLocationFromStorage();
 
   const { data: activeCitiesData } = useQuery({
     queryKey: ['GET_ACTIVE_CITIES_FOR_HEADER'],
     queryFn: async () => {
       const res = await getActiveCities();
-
-      console.log('res', res);
-      try {
-        if (res.code === 200) {
-          if(cityId) {
-            setSelectedCity(res.data.find((city: any) => (city.id) === (cityId)));
+      if (res.code === 200) {
+        if (cityId) {
+          const foundCity = res.data.find((city: CityData) => city.id === Number(cityId));
+          if (foundCity) {
+            setSelectedCity(foundCity);
+            setCity(foundCity);
           }
-          return res.data;
         }
-      } catch (error) {
-        console.error('Error fetching active cities:', error);
-        throw error;
+        return res.data;
       }
+      throw new Error('Failed to fetch cities');
     },
     retry: 1,
     staleTime: 10 * 60 * 1000,
@@ -91,60 +152,76 @@ export default function Header() {
   });
 
   useEffect(() => {
-    console.log('cityId', cityId);
-    console.log('activeCitiesData', activeCitiesData);
-    if (cityId && activeCitiesData && selectedCity === null) {
-      const cityData = activeCitiesData.find(
-        (city: any) => (city.id) == (cityId)
-      );
-      console.log('cityData', cityData);
+    if (!activeCitiesData) return;
 
+    // Sync with context selected city
+    if (contextSelectedCity) {
+      setSelectedCity(contextSelectedCity);
+      return;
+    }
+
+    // First priority: Use cityId from context
+    if (cityId && selectedCity === null) {
+      const cityData = activeCitiesData.find(
+        (city: CityData) => city.id === Number(cityId)
+      );
       if (cityData) {
         setSelectedCity(cityData);
+        setCity(cityData);
+        return;
       }
     }
-    else if(!cityId && activeCitiesData) {
-      console.log('setting selectedCity to null');
+    
+    // Second priority: Use location from sellCarDetails if available
+    if (!selectedCity && storedLocationName) {
+      const cityData = activeCitiesData.find(
+        (city: CityData) => city.cityName === storedLocationName || 
+                      storedLocationName.includes(city.cityName)
+      );
+      if (cityData) {
+        setSelectedCity(cityData);
+        setCity(cityData);
+        return;
+      }
+    }
+    
+    // If no location found, show location modal
+    if (!cityId && !storedLocationName) {
       setSelectedCity(null);
       setLocationModalOpen(true);
     }
-  }, [cityId, activeCitiesData]);
+  }, [cityId, activeCitiesData, storedLocationName, selectedCity, contextSelectedCity, setCity]);
 
   const { refetch: logoutRefetch } = useQuery({
     queryKey: ['LOGOUT'],
     queryFn: async () => {
       const deviceId = user?.deviceId || user?.device_id || generateUUID();
-      const payload = {
+      return await logoutApi({
         deviceId: String(deviceId),
         deviceType: 3,
-      };
-      const res = await logoutApi(payload);
-      return res;
+      });
     },
     enabled: false,
     retry: false,
     refetchOnWindowFocus: false,
   });
 
- 
-
-
   const handleLogin = () => {
     router.push('/login');
-  }
+  };
 
   const handleLogout = async () => {
     setMobileMenuOpen(false);
     setProfileMenuOpen(false);
 
     try {
-      const { data } = await logoutRefetch();
+      await logoutRefetch();
       logout();
     } catch (error) {
       console.error('Logout API error:', error);
       logout();
     }
-  }
+  };
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -178,10 +255,10 @@ export default function Header() {
     { href: '/dashboard', label: 'Dashboard', icon: User },
   ];
 
-  const profileMenuItems = [
+  const profileMenuItems: ProfileMenuItem[] = [
     { href: '/profile/my-order', label: 'My Orders', icon: ShoppingBag },
     { href: '/profile/shortlisted-vehicles', label: 'Shortlisted Vehicles', icon: Heart },
-    { href: '/profile/my-vehicles', label: 'My Vehicles', icon: Car },
+    { href: '/profile/my-vehicles', label: 'My Vehicles', icon: CarFront },
     { href: '/profile/manage-consents', label: 'Manage Consents', icon: ShieldCheck },
     { href: '/profile/settings', label: 'Profile Settings', icon: Settings2 },
   ];
@@ -207,7 +284,8 @@ export default function Header() {
 
               {/* location button */}
               <LocationButton 
-                selectedCity={selectedCity} 
+                selectedCity={selectedCity}
+                storedLocationName={storedLocationName}
                 onClick={() => setLocationModalOpen(true)} 
               />
 
@@ -241,80 +319,13 @@ export default function Header() {
                           </p>
                         </div>
                         <div className="py-1">
-                          <Link
-                            href="/profile/my-order"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                My Orders
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/shortlisted-vehicles"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <Heart className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Shortlisted Vehicles
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/my-vehicles"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <Car className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                My Vehicles
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/manage-consents"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <ShieldCheck className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Manage Consents
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/settings"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <Settings2 className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Profile Settings
-                              </p>
-                            </div>
-                          </Link>
+                          {profileMenuItems.map((item) => (
+                            <ProfileMenuLink
+                              key={item.href}
+                              item={item}
+                              onClose={() => setProfileMenuOpen(false)}
+                            />
+                          ))}
                         </div>
 
                         {/* Logout Button */}
@@ -388,7 +399,8 @@ export default function Header() {
 
                 {/* location button */}
                 <LocationButton 
-                  selectedCity={selectedCity} 
+                  selectedCity={selectedCity}
+                  storedLocationName={storedLocationName}
                   onClick={() => setLocationModalOpen(true)} 
                 />
               </div>
@@ -440,8 +452,6 @@ export default function Header() {
                   <div
                     className="relative flex items-center gap-2"
                     ref={profileMenuRefDesktop}
-                  // onMouseEnter={() => setProfileMenuOpen(true)}
-                  // onMouseLeave={() => setProfileMenuOpen(false)}
                   >
                     <button
                       type="button"
@@ -462,80 +472,13 @@ export default function Header() {
                           </p>
                         </div>
                         <div className="py-1">
-                          <Link
-                            href="/profile/my-order"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <ShoppingBag className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                My Orders
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/shortlisted-vehicles"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <Heart className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Shortlisted Vehicles
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/my-vehicles"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <CarFront className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                My Vehicles
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/manage-consents"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <ShieldCheck className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Manage Consents
-                              </p>
-                            </div>
-                          </Link>
-
-                          <Link
-                            href="/profile/settings"
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50/70 transition-colors group"
-                            onClick={() => setProfileMenuOpen(false)}
-                          >
-                            <div className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-primary-100">
-                              <Settings2 className="w-4 h-4 text-slate-600 group-hover:text-primary-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800 group-hover:text-primary-700">
-                                Profile Settings
-                              </p>
-                            </div>
-                          </Link>
+                          {profileMenuItems.map((item) => (
+                            <ProfileMenuLink
+                              key={item.href}
+                              item={item}
+                              onClose={() => setProfileMenuOpen(false)}
+                            />
+                          ))}
                         </div>
 
                         {/* Logout Button */}
@@ -643,18 +586,23 @@ export default function Header() {
           </div>
         )}
 
-      </header >
+      </header>
 
-      {/* Location Modal */} 
-      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen && 
+      {/* Location Modal */}
+      {activeCitiesData && activeCitiesData.length > 0 && locationModalOpen && (
         <LocationModal
           open={locationModalOpen}
           selectedCity={selectedCity}
-          setSelectedCity={setSelectedCity}
+          setSelectedCity={(city) => {
+            setSelectedCity(city);
+            if (city) {
+              setCity(city);
+            }
+          }}
           onClose={() => setLocationModalOpen(false)}
           activeCitiesData={activeCitiesData}
         />
-      }
+      )}
 
       {/* Bottom Mobile Navigation - Enhanced */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/98 backdrop-blur-xl border-t border-gray-200 z-50 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]">
