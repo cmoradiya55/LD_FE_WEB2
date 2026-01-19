@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Sparkles, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
-import type { DetailOptionData, DetailOptionIcon } from '@/lib/carData';
+// import type { DetailOptionData, DetailOptionIcon } from '@/lib/carData';
 import CarDetailCurve from './CarDetailCurve';
 import type React from 'react';
 
@@ -13,7 +13,7 @@ const cn = (...classes: Array<string | false | undefined | null>) =>
 interface FeaturedImageProps {
     src: string;
     alt: string;
-    detailOptions?: DetailOptionData[];
+    detailOptions?: any;
     wrapperClassName?: string;
     imageClassName?: string;
     onImageClick?: () => void;
@@ -26,11 +26,11 @@ type DetailOption = {
     isActive?: boolean;
 };
 
-const iconMap: Record<DetailOptionIcon, LucideIcon> = {
+const iconMap : any = {
     sparkles: Sparkles,
 };
 
-const normalizeDetailOptions = (options: DetailOptionData[] | undefined, fallbackImage: string): DetailOption[] => {
+const normalizeDetailOptions = (options: any | undefined, fallbackImage: string): DetailOption[] => {
     const sourceOptions = options?.length
         ? options
         : [
@@ -41,7 +41,7 @@ const normalizeDetailOptions = (options: DetailOptionData[] | undefined, fallbac
             },
         ];
 
-    return sourceOptions.map((option) => ({
+    return sourceOptions.map((option: any) => ({
         ...option,
         images: option.images?.length ? option.images : [fallbackImage],
         icon: option.icon ? iconMap[option.icon] : undefined,
