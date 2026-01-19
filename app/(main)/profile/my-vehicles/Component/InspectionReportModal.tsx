@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, IndianRupee, Save, Image as ImageIcon, XCircle } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { X, IndianRupee, Save, Image as ImageIcon, XCircle, CarFront, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { getMyUsedCarDetail, patchApproveListingDelistingAndPriceUpdate } from "@/utils/auth";
-import { UsedCarListingStatus, ExteriorFields, EngineAndTransmissionFields, SteeringSuspensionAndBrakesFields, AirConditioningFields, ElectricalFields, InteriorFields, SeatsFields } from "@/lib/data";
+import { UsedCarListingStatus, ExteriorFields, EngineAndTransmissionFields, SteeringSuspensionAndBrakesFields, AirConditioningFields, ElectricalFields, InteriorFields, SeatsFields, OwnerType } from "@/lib/data";
 import { Button } from "@/components/Button/Button";
 import { useAuth } from "@/components/providers/AuthProvider";
 import InspectionSummary from "./InspectionSummery";
 import StaffInspectionReport from "./StaffInspectionReport";
 import ImagePreview from "@/components/common/ImagePreview";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
-// Default allFields structure
 const defaultAllFields = {
     exterior: ExteriorFields,
     engine: EngineAndTransmissionFields,
@@ -22,7 +22,6 @@ const defaultAllFields = {
     seats: SeatsFields,
 };
 
-// All field definitions for lookup
 const allFieldDefinitions = [
     ...ExteriorFields,
     ...EngineAndTransmissionFields,
@@ -47,7 +46,16 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     onClose,
 }) => {
     const { user } = useAuth();
-    const queryClient = useQueryClient();
+
+    const getOwnerTypeLabel = (owner: number): string => {
+        const ownerTypeMap: Record<OwnerType, string> = {
+            [OwnerType.FIRST]: '1st Owner',
+            [OwnerType.SECOND]: '2nd Owner',
+            [OwnerType.THIRD]: '3rd Owner',
+            [OwnerType.FOURTH]: '4th Owner',
+        };
+        return ownerTypeMap[owner as OwnerType] || 'N/A';
+    };
     const [price, setPrice] = useState<string>("");
     const [customerExpectedPrice, setCustomerExpectedPrice] = useState<string>("");
     const [originalCustomerExpectedPrice, setOriginalCustomerExpectedPrice] = useState<string>("");
@@ -55,14 +63,13 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     const [isRejecting, setIsRejecting] = useState(false);
     const [showRejectForm, setShowRejectForm] = useState(false);
     const [rejectReason, setRejectReason] = useState<string>("");
+    const [isUnlisting, setIsUnlisting] = useState(false);
+    const [showUnlistForm, setShowUnlistForm] = useState(false);
+    const [unlistReason, setUnlistReason] = useState<string>("");
 
     const isAdmin = user?.role === "admin" || user?.userType === "admin" || user?.isAdmin === true;
 
-    // Fetch data only if carData is not provided
-    const {
-        data: fetchedData,
-        isLoading,
-    } = useQuery({
+    const { data: fetchedData, isLoading, refetch } = useQuery({
         queryKey: ["GET_MY_USED_CAR_DETAIL", carId],
         queryFn: async () => {
             if (!carId) return null;
@@ -77,8 +84,9 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         refetchOnWindowFocus: false,
     });
 
-    // Use carData if provided, otherwise use fetched data
     const data = carData || fetchedData;
+
+    useScrollLock(isOpen);
 
     useEffect(() => {
         if (!data) {
@@ -92,7 +100,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         if (currentStatus === UsedCarListingStatus.APPROVED_BY_ADMIN) {
             const finalPrice = data?.final_price || data?.finalPrice;
             setPrice(finalPrice ? String(finalPrice) : "");
-            
+
             const customerPrice = data?.customerExpectedPrice || data?.customer_expected_price;
             const customerPriceStr = customerPrice ? String(customerPrice) : "";
             setCustomerExpectedPrice(customerPriceStr);
@@ -108,11 +116,6 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         }
     }, [data, isAdmin]);
 
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value.replace(/[^0-9.]/g, "");
-        setPrice(value);
-    };
-
     const handleCustomerExpectedPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/[^0-9.]/g, "");
         setCustomerExpectedPrice(value);
@@ -126,8 +129,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         setIsSubmitting(true);
         try {
             const payload: any = { status: 1 };
-            
-            // Include price only if it was updated
+
             if (isPriceUpdated && customerExpectedPrice && parseFloat(customerExpectedPrice) > 0) {
                 payload.price = parseFloat(customerExpectedPrice);
             }
@@ -135,13 +137,12 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
             const response = await patchApproveListingDelistingAndPriceUpdate(String(carId), payload);
 
             if (response?.code === 200) {
-                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_DETAIL", carId] });
-                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_LIST"] });
-                // Update original price to current value after successful submit
                 setOriginalCustomerExpectedPrice(customerExpectedPrice);
+                await refetch();
+                onClose();
             }
         } catch (error) {
-            // Error handling can be improved with toast notifications
+            console.error('Error submitting:', error);
         } finally {
             setIsSubmitting(false);
         }
@@ -167,32 +168,60 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
             });
 
             if (response?.code === 200) {
-                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_DETAIL", carId] });
-                await queryClient.invalidateQueries({ queryKey: ["GET_MY_USED_CAR_LIST"] });
                 setShowRejectForm(false);
                 setRejectReason("");
+                await refetch();
                 onClose();
             }
         } catch (error) {
-            // Error handling can be improved with toast notifications
+            console.error('Error rejecting:', error);
         } finally {
             setIsRejecting(false);
         }
     };
 
-    // Transform inspection images from API to formValues
+    const handleUnlistClick = () => {
+        setShowUnlistForm(true);
+    };
+
+    const handleUnlistCancel = () => {
+        setShowUnlistForm(false);
+        setUnlistReason("");
+    };
+
+    const handleUnlistSubmit = async () => {
+        if (!carId || !unlistReason.trim()) return;
+
+        setIsUnlisting(true);
+        try {
+            const response = await patchApproveListingDelistingAndPriceUpdate(String(carId), {
+                status: 2,
+                reason: unlistReason.trim(),
+            });
+
+            if (response?.code === 200) {
+                setShowUnlistForm(false);
+                setUnlistReason("");
+                await refetch();
+                onClose();
+            }
+        } catch (error) {
+            console.error('Error unlisting:', error);
+        } finally {
+            setIsUnlisting(false);
+        }
+    };
+
     const transformInspectionData = (apiData: any) => {
         if (!apiData?.inspectionImages || !Array.isArray(apiData.inspectionImages)) {
             return { allFields: defaultAllFields, formValues: {} };
         }
 
-        // Create lookup map: type_subtype -> field definition
         const fieldMap = new Map<string, any>();
         allFieldDefinitions.forEach((field) => {
             fieldMap.set(`${field.type}_${field.sub_type}`, field);
         });
 
-        // Transform inspectionImages to formValues
         const formValues: Record<string, any> = {};
         apiData.inspectionImages.forEach((image: any) => {
             if (!image?.type || !image?.subType || !image?.imageUrl) return;
@@ -203,14 +232,14 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
 
             formValues[fieldDef.name] = {
                 image: image.imageUrl,
-                damage: image.isDamage !== undefined && image.isDamage !== null 
-                    ? (image.isDamage ? "yes" : "no") 
+                damage: image.isDamage !== undefined && image.isDamage !== null
+                    ? (image.isDamage ? "yes" : "no")
                     : undefined,
                 remarks: image.remarks || undefined,
                 treadDepth: image.treadDepth || undefined,
                 tread_depth: image.treadDepth || undefined,
-                electrical_type: image.isPower !== undefined 
-                    ? (image.isPower ? "power" : "manual") 
+                electrical_type: image.isPower !== undefined
+                    ? (image.isPower ? "power" : "manual")
                     : undefined,
             };
         });
@@ -243,6 +272,31 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         ...transformedData.formValues,
     };
 
+    // Extract car info, customer info, and other data from the data object
+    const carInfo = {
+        variantName: data?.variantName,
+        registration_number: data?.registration_number || data?.registrationNumber,
+        registrationNumber: data?.registrationNumber,
+        registartion_year: data?.registartion_year || data?.registrationYear,
+        registrationYear: data?.registrationYear,
+        modelYear: data?.modelYear,
+        fuelTypeLabel: data?.fuelTypeLabel,
+        fuelType: data?.fuelType,
+        ownerType: data?.ownerType,
+        owner: data?.owner,
+        owner_type: data?.owner_type,
+    };
+
+    const customerInfo = {
+        fullName: data?.customerName || data?.customer_name || data?.fullName,
+        mobileNo: data?.customerMobile || data?.customer_mobile || data?.mobileNo,
+        countryCode: data?.customerCountryCode || data?.customer_country_code || data?.countryCode,
+        areaName: data?.areaName || data?.area_name,
+        city: data?.city,
+    };
+
+    const kmDriven = data?.kmDriven || data?.km_driven;
+
     return (
         <div className="w-full h-full fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden w-full h-full max-h-[98vh]">
@@ -265,7 +319,68 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                 </div>
 
                 {/* Body */}
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 overflow-y-auto max-h-[calc(90vh-56px)] space-y-4 sm:space-y-5">
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 sm:pt-4 overflow-y-auto scrollbar-thin max-h-[calc(90vh-56px)] space-y-4 sm:space-y-5">
+                    {/* Vehicle Information */}
+                    {data && (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-2.5 border-b border-gray-200">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-gradient-to-br from-primary-500 to-blue-600 rounded-lg">
+                                        <CarFront className="h-4 w-4 text-white" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900">Vehicle Details</h3>
+                                </div>
+                            </div>
+                            <div className="p-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">Variant</p>
+                                        <p className="text-xs font-semibold text-gray-900 truncate">{carInfo.variantName || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">Reg. No.</p>
+                                        <p className="text-xs font-semibold text-gray-900 truncate">{carInfo.registration_number || carInfo.registrationNumber || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">Reg. Year</p>
+                                        <p className="text-xs font-semibold text-gray-900">{carInfo.registartion_year || carInfo.registrationYear || carInfo.modelYear || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">Fuel Type</p>
+                                        <p className="text-xs font-semibold text-gray-900 truncate">{carInfo.fuelTypeLabel || carInfo.fuelType || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">KM Driven</p>
+                                        <p className="text-xs font-semibold text-gray-900">{kmDriven ? `${kmDriven.toLocaleString()} km` : 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                        <p className="text-[10px] text-gray-500 mb-0.5">Owner</p>
+                                        <p className="text-xs font-semibold text-gray-900 truncate">
+                                            {(carInfo.ownerType || carInfo.owner || carInfo.owner_type) ? getOwnerTypeLabel(carInfo.ownerType || carInfo.owner || carInfo.owner_type) : 'N/A'}
+                                        </p>
+                                    </div>
+                                    {customerInfo?.fullName && (
+                                        <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200">
+                                            <p className="text-[10px] text-gray-500 mb-0.5">Customer</p>
+                                            <p className="text-xs font-semibold text-gray-900 truncate">{customerInfo.fullName}</p>
+                                        </div>
+                                    )}
+                                    {(customerInfo?.areaName || customerInfo?.city) && (
+                                        <div className="bg-gray-50 rounded-md p-2.5 border border-gray-200 sm:col-span-2 lg:col-span-1">
+                                            <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                                            <div className="flex items-center gap-1">
+                                                <MapPin className="h-3 w-3 text-blue-500 shrink-0" />
+                                                <p className="text-xs font-semibold text-gray-900 truncate">
+                                                    {[customerInfo.areaName, customerInfo.city].filter(Boolean).join(', ') || 'N/A'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <InspectionSummary
                         formValues={mergedFormValues || {}}
                         allFields={transformedData.allFields || defaultAllFields}
@@ -347,7 +462,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                 // If Status code = 700 then show the price details
                                 if (currentStatus === UsedCarListingStatus.APPROVED_BY_ADMIN) {
                                     const finalPrice = data?.final_price || data?.finalPrice;
-                                    
+
                                     return (
                                         <div className="space-y-3">
                                             {/* Final Price Display */}
@@ -361,7 +476,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                     </span>
                                                 </div>
                                                 <p className="text-lg font-bold text-primary-700">
-                                                    {finalPrice 
+                                                    {finalPrice
                                                         ? `₹${Number(finalPrice).toLocaleString('en-IN')}`
                                                         : <span className="text-gray-400 text-sm">Not Available</span>
                                                     }
@@ -464,10 +579,10 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                 }
 
                                 // If Status code = 800 then show the listed price
-                                if (currentStatus === UsedCarListingStatus.LISTED) {
+                                if (currentStatus >= UsedCarListingStatus.LISTED) {
                                     const finalPrice = data?.final_price || data?.finalPrice;
                                     const customerExpectedPrice = data?.customerExpectedPrice || data?.customer_expected_price;
-                                    
+
                                     return (
                                         <div className="space-y-2">
                                             {/* Price Comparison Grid */}
@@ -483,7 +598,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                         </span>
                                                     </div>
                                                     <p className="text-lg font-bold text-blue-700">
-                                                        {customerExpectedPrice 
+                                                        {customerExpectedPrice
                                                             ? `₹${Number(customerExpectedPrice).toLocaleString('en-IN')}`
                                                             : <span className="text-gray-400 text-sm">Not Available</span>
                                                         }
@@ -501,7 +616,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                         </span>
                                                     </div>
                                                     <p className="text-lg font-bold text-primary-700">
-                                                        {finalPrice 
+                                                        {finalPrice
                                                             ? `₹${Number(finalPrice).toLocaleString('en-IN')}`
                                                             : <span className="text-gray-400 text-sm">Not Available</span>
                                                         }
@@ -509,6 +624,58 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                 </div>
                                             </div>
 
+                                            {/* Unlist Reason Form */}
+                                            {showUnlistForm && (
+                                                <div className="space-y-2.5 p-3 rounded-lg bg-red-50 border border-red-200">
+                                                    <div>
+                                                        <label htmlFor="unlistReason" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                                            Reason for Unlisting <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <textarea
+                                                            id="unlistReason"
+                                                            value={unlistReason}
+                                                            onChange={(e) => setUnlistReason(e.target.value)}
+                                                            placeholder="Enter reason for unlisting..."
+                                                            rows={3}
+                                                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:border-red-400 focus:ring-1 focus:ring-red-400/20 transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400 resize-none"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            onClick={handleUnlistCancel}
+                                                            disabled={isUnlisting}
+                                                            variant="secondary"
+                                                            className="flex items-center gap-1.5 px-4 py-1.5 text-sm"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleUnlistSubmit}
+                                                            disabled={isUnlisting || !unlistReason.trim()}
+                                                            variant="reject"
+                                                            className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                        >
+                                                            <XCircle className="h-3.5 w-3.5" />
+                                                            {isUnlisting ? 'Unlisting...' : 'Unlist'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Unlist Button */}
+                                            {!showUnlistForm && data?.status === 800 && (
+                                                <div className="flex items-center justify-end pt-1">
+                                                    <Button
+                                                        onClick={handleUnlistClick}
+                                                        disabled={isUnlisting}
+                                                        variant="reject"
+                                                        className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                    >
+                                                        <XCircle className="h-3.5 w-3.5" />
+                                                        Unlist
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 }

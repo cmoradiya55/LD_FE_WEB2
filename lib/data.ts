@@ -17,24 +17,6 @@ export enum KilometerDriven {
     ONE_5_LAKH_PLUS = 13,
 }
 
-// 1. All the possible things a user/inspector can upload
-export enum MediaCategory {
-    // Car Visuals
-    CAR = 'car',
-    IMAGE = 'image',
-    DOCUMENT = 'document',
-
-    // Sensitive Docs
-    SENSITIVE_DOCUMENT = 'sensitive_document',
-}
-
-// Owner Type Enum
-export enum OwnerType {
-    FIRST = 1,
-    SECOND = 2,
-    THIRD = 3,
-    FOURTH = 4,
-}
 
 // Used Car Listing Status Enum
 export enum UsedCarListingStatus {
@@ -52,6 +34,66 @@ export enum UsedCarListingStatus {
     REJECTED_BY_CUSTOMER = 1200,
     EXPIRED = 1300,
     CANCELLED = 1400,
+}
+
+// Shared enums for filters and listings
+export enum UsedCarSortOption {
+    NEWEST = 2,
+    PRICE_LOW_TO_HIGH = 3,
+    PRICE_HIGH_TO_LOW = 4,
+    KM_LOW_TO_HIGH = 5,
+    MODEL_NEW_TO_OLD = 6,
+}
+
+export enum SafetyRating {
+    ONE = 1,
+    TWO = 2,
+    THREE = 3,
+    FOUR = 4,
+    FIVE = 5,
+}
+
+export enum FuelType {
+    PETROL = 1,
+    DIESEL = 2,
+    CNG = 3,
+    ELECTRIC = 4,
+    HYBRID = 5,
+}
+
+export enum BodyType {
+    SEDAN = 1,
+    SUB_COMPACT_SUV = 2,
+    SUV = 3,
+    HATCHBACK = 4,
+    MUV = 5,
+    COUPE = 6,
+    CONVERTIBLE = 7,
+    PICKUP = 8,
+    WAGON = 9,
+}
+
+export enum TransmissionType {
+    MANUAL = 1,
+    AUTOMATIC = 2,
+}
+
+export enum OwnerType {
+    FIRST = 1,
+    SECOND = 2,
+    THIRD = 3,
+    FOURTH = 4,
+}
+
+// 1. All the possible things a user/inspector can upload
+export enum MediaCategory {
+    // Car Visuals
+    CAR = 'car',
+    IMAGE = 'image',
+    DOCUMENT = 'document',
+
+    // Sensitive Docs
+    SENSITIVE_DOCUMENT = 'sensitive_document',
 }
 
 // Inspection Image Types

@@ -7,8 +7,6 @@ import Link from 'next/link';
 import { Button } from '@/components/Button/Button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import PublicRoute from '@/components/Route/PublicRoute';
-// import { LoadingSpinner } from '@/components/common';
-
 
 export default function Login() {
   const { sendOTP, login } = useAuth();
@@ -21,9 +19,8 @@ export default function Login() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const contactInputRef = useRef<HTMLInputElement>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
-  const [fullName , setFullName  ] = useState<any>(null);
+  const [fullName, setFullName] = useState<any>(null);
 
-  // Auto-focus inputs
   useEffect(() => {
     if (step === 'method' && contactInputRef.current) {
       contactInputRef.current.focus();
@@ -32,7 +29,6 @@ export default function Login() {
     }
   }, [step]);
 
-  // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
@@ -40,13 +36,11 @@ export default function Login() {
     }
   }, [resendCooldown]);
 
-  // Validate phone number (10 digits)
   const validatePhone = (phone: string): boolean => {
     const cleaned = phone.replace(/\D/g, '');
     return cleaned.length === 10;
   };
 
-  // Format phone number display
   const formatPhone = (value: string): string => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length <= 10) {
@@ -60,25 +54,24 @@ export default function Login() {
     setError('');
     setSuccess('');
     setLoading(true);
-    
+
     const cleanedContact = contact.replace(/\D/g, '');
     if (!validatePhone(cleanedContact)) {
       setError('Please enter a valid 10-digit phone number');
       setLoading(false);
       return;
     }
-    
+
     const result = await sendOTP(cleanedContact);
-    
     if (result.success) {
       setStep('otp');
       setSuccess('OTP sent successfully!');
-      setResendCooldown(60); // 60 second cooldown
+      setResendCooldown(60);
       setTimeout(() => setSuccess(''), 3000);
     } else {
       setError(result.error || 'Failed to send OTP');
     }
-    
+
     setLoading(false);
   };
 
@@ -87,37 +80,37 @@ export default function Login() {
     setError('');
     setSuccess('');
     setLoading(true);
-    
+
     if (otp.length !== 6) {
       setError('Please enter a 6-digit OTP');
       setLoading(false);
       return;
     }
-    
+
     const cleanedContact = contact.replace(/\D/g, '');
     const result = await login(cleanedContact, otp);
 
-    // if(data)
+    if (result.success) {
+      setSuccess('Login successful! Redirecting...');
+    } else {
+      setError(result.error || 'Invalid OTP. Please try again.');
+      setOtp('');
+    }
 
-    // if(result.success && result.fullName) {
-    //   setFullName(result?.data?.fullName);
-    // } else {
-    //   setError(result.error || 'Invalid OTP');
-    // }
-    // setLoading(false);
+    setLoading(false);
   };
 
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return;
-    
+
     setError('');
     setSuccess('');
     setOtp('');
     setLoading(true);
-    
+
     const cleanedContact = contact.replace(/\D/g, '');
     const result = await sendOTP(cleanedContact);
-    
+
     if (result.success) {
       setSuccess('OTP resent successfully!');
       setResendCooldown(60);
@@ -125,7 +118,7 @@ export default function Login() {
     } else {
       setError(result.error || 'Failed to resend OTP');
     }
-    
+
     setLoading(false);
   };
 
@@ -149,12 +142,12 @@ export default function Login() {
           <div className="text-center mb-8 animate-in">
             <div className="inline-flex items-center justify-center mb-4">
               <div className="relative">
-                <Image 
-                  src="/logo.webp" 
-                  alt="AutoMarket logo" 
-                  width={90} 
-                  height={90} 
-                  priority 
+                <Image
+                  src="/logo.webp"
+                  alt="AutoMarket logo"
+                  width={90}
+                  height={90}
+                  priority
                   className="drop-shadow-lg"
                 />
               </div>
@@ -228,9 +221,9 @@ export default function Login() {
                     )}
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={loading || !validatePhone(contact)}
                     variant="primary"
                   >
@@ -287,8 +280,8 @@ export default function Login() {
                   </p>
                 </div>
 
-                <form 
-                onSubmit={handleVerifyOTP}
+                <form
+                  onSubmit={handleVerifyOTP}
                 >
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -311,9 +304,9 @@ export default function Login() {
                     </p>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={loading || otp.length !== 6}
                     variant="primary"
                   >
