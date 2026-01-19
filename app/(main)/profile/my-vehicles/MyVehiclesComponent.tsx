@@ -60,9 +60,9 @@ const MyVehiclesComponent = () => {
     };
 
     return (
-        <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
             {/* Header */}
-            <div className="space-y-1">
+            <div className="space-y-1 mb-4">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-gray-500">Vehicles you own or have listed</p>
@@ -125,8 +125,7 @@ const MyVehiclesComponent = () => {
                                     showStatusBadge={true}
                                 />
                             </div>
-                            {(car.status === UsedCarListingStatus.APPROVED_BY_ADMIN ||
-                                car.status === UsedCarListingStatus.LISTED) && (
+                            {(car.status >= UsedCarListingStatus.APPROVED_BY_ADMIN ) && (
                                     <Button
                                         variant='secondary'
                                         className='w-full'

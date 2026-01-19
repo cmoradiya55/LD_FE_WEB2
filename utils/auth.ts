@@ -1,7 +1,7 @@
 import generateUUID from "@/lib/uuid";
 import axiosInstance from "./axios";
 import axios from "axios";
-import { MediaCategory } from "@/lib/carData";
+import { MediaCategory } from "@/lib/data";
 
 const postRequest = async (url: string, payload: any) => {
   try {
@@ -63,7 +63,7 @@ export const postCreateSellCar = (payload: any) => postRequest('/customer/sell-c
 // Used Car Listing APIs
 export const getListingApi = (query: any) => getRequest(`customer/used-car/list?${query}`);
 export const getDetailApi = (slug: string) => getRequest(`/customer/used-car/detail/${slug}`);
-export const getMyUsedCarList = (page: number = 1, limit: number = 10) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`); //cityId, isCityIncluded
+export const getMyUsedCarList = (page: number = 1, limit: number = 50) => getRequest(`/customer/used-car?page=${page}&limit=${limit}`); //cityId, isCityIncluded
 export const getMyUsedCarDetail = (id: string) => getRequest(`/customer/used-car/${id}`);
 export const patchUpdateMyCarDetail = (id: string, payload: any) => patchRequest(`/customer/used-car/${id}`, payload);
 export const patchApproveListingDelistingAndPriceUpdate = (id: string, payload: any) => patchRequest(`/customer/used-car/${id}/status`, payload);
@@ -82,7 +82,7 @@ export const postAddToWishlist = (payload: any) => postRequest('/customer/wishli
 export const delRemoveFromWishlist = (payload: any) => deleteRequest(`/customer/wishlist`, payload);
 export const clearWishlist = () => deleteRequest(`/customer/wishlist/clear`);
 export const getWishlistCount = () => getRequest(`/customer/wishlist/count`);
-export const getWishlist = (page: number = 1, limit: number = 1) => getRequest(`/customer/wishlist?page=${page}&limit=${limit}`);
+export const getWishlist = (page: number, limit: number) => getRequest(`/customer/wishlist?page=${page}&limit=${limit}`);
 
 
 // Customer Profile APIs

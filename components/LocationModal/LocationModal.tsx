@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { updateCity } from '@/utils/auth';
 import { getStorageItem } from '@/lib/storage';
 import { useCity } from '@/components/providers/CityProvider';
+import { useScrollLock } from '@/hooks/useScrollLock';
 interface CityData {
   id: number;
   stateName: string;
@@ -19,10 +20,15 @@ interface LocationModalProps {
   activeCitiesData: CityData[];
 }
 
-export function LocationModal({ selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
+export function LocationModal({ open, selectedCity, setSelectedCity, onClose, activeCitiesData }: LocationModalProps) {
   const [locationSearch, setLocationSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { setCity } = useCity();
+
+  // Prevent body scroll when modal is open
+  useScrollLock(open);
+
+  if (!open) return null;
 
   const handleClose = () => {
     setLocationSearch('');
@@ -94,7 +100,7 @@ export function LocationModal({ selectedCity, setSelectedCity, onClose, activeCi
           {/* Popular cities */}
           <div>
             <p className="text-xs font-semibold text-slate-500 mb-2">Popular cities</p>
-            <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto scrollbar-thin pr-1">
               {filteredCities.map((city: CityData) => (
                 <button
                   key={city.id}

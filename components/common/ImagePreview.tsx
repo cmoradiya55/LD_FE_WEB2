@@ -3,6 +3,7 @@
 import { Minus, Plus, RotateCcw, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 type ImagePreviewProps = {
   src: string;
@@ -32,17 +33,16 @@ export default function ImagePreview({ src, alt, className }: ImagePreviewProps)
     }
     if (isOpen) {
       window.addEventListener('keydown', onKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
       setZoom(1);
       setOffset({ x: 0, y: 0 });
     }
     return () => {
       window.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  // Prevent body scroll when modal is open
+  useScrollLock(isOpen);
 
   const clampZoom = useCallback((value: number) => {
     return Math.min(maxZoom, Math.max(minZoom, Number(value.toFixed(2))));

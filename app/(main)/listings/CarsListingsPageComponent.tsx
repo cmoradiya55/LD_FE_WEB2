@@ -1,61 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import FilterSidebar, { FilterState } from './FilterSidebar';
 import { Filter } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { getListingApi } from '@/utils/auth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getListingApi, postAddToWishlist, delRemoveFromWishlist } from '@/utils/auth';
 import { buildQueryStringFromFilters } from './utils';
-import { CarData } from '@/lib/carData';
 import CarsListings from './CarsListings';
 import { getStorageItem } from '@/lib/storage';
+import { OwnerType } from '@/lib/data';
 import { useCity } from '@/components/providers/CityProvider';
-
-// type ApiImage = {
-//   id: number;
-//   imageSubtype?: number;
-//   imageUrl: string;
-//   title?: string;
-// };
-
-// type ApiImageGroup = {
-//   type: number;
-//   typeName: string;
-//   images: ApiImage[];
-// };
-
-// type ApiFeature = {
-//   id: number;
-//   name: string;
-//   displayName: string;
-//   valueType: number;
-//   featureValue: string | number | boolean | null;
-// };
-
-// type ApiListing = {
-//   id: number;
-//   slug?: string;
-//   displayName: string;
-//   variantName?: string;
-//   registrationYear?: number;
-//   kmDriven?: number | null;
-//   registrationNumber?: string;
-//   ownerType?: number;
-//   rtoCode?: string;
-//   final_price?: number | null;
-//   transmissionType?: string;
-//   fuelType?: string;
-//   displacementCc?: number;
-//   powerBhp?: number;
-//   torqueNm?: number;
-//   seatingCapacity?: number;
-//   mileageKmpl?: number;
-//   numberOfGears?: number;
-//   fuelTankCapacityLiters?: number | null;
-//   features?: ApiFeature[];
-//   images?: ApiImageGroup[];
-// };
 
 const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Listing+image+coming+soon';
@@ -112,8 +67,17 @@ type ApiListing = {
   isWishlisted?: boolean;
 };
 
-const mapApiListingToCarData = (item: ApiListing): CarData => {
-  // Priority: Use direct image field, then check images array, then placeholder
+const getOwnerTypeLabel = (ownerType: number): string => {
+  const labels: Record<number, string> = {
+    [OwnerType.FIRST]: '1st Owner',
+    [OwnerType.SECOND]: '2nd Owner',
+    [OwnerType.THIRD]: '3rd Owner',
+    [OwnerType.FOURTH]: '4th Owner',
+  };
+  return labels[ownerType] || `Owner Type ${ownerType}`;
+};
+
+const mapApiListingToCarData = (item: ApiListing): any => {
   const primaryImage =
     item.image ||
     item.images?.find((group) => group.images?.length)?.images?.[0]?.imageUrl ||
@@ -130,7 +94,6 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
   const name = `${item.displayName}${item.variantName ? ` ${item.variantName}` : ''}`.trim();
   const year = item.registrationYear ?? new Date().getFullYear();
   
-  // Resolve final_price (priority: final_price > price)
   const final_price = 
     typeof item.final_price === 'number' && item.final_price > 0
       ? item.final_price
@@ -138,7 +101,6 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
       ? item.price
       : null;
   
-  // Resolve customerExpectedPrice
   const customerExpectedPrice = 
     typeof item.customerExpectedPrice === 'number' && item.customerExpectedPrice > 0
       ? item.customerExpectedPrice
@@ -146,8 +108,6 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
       ? item.customer_expected_price
       : null;
   
-  // Format price as string for CarData interface
-  // Use final_price if available, otherwise use price
   const priceString = final_price !== null
       ? `₹${final_price.toLocaleString('en-IN')}/-`
       : '';
@@ -173,7 +133,7 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
     transmission: item.transmissionType || '—',
     kmsDriven: item.kmDriven ? `${item.kmDriven.toLocaleString()} km` : '—',
     location: areaCityLocation || item.rtoCode || '—',
-    owner: item.ownerType ? `Owner Type ${item.ownerType}` : '—',
+    owner: item.ownerType ? getOwnerTypeLabel(item.ownerType) : '—',
     registrationYear: item.registrationYear ? String(item.registrationYear) : String(year),
     registrationNumber: item.registrationNumber,
     insurance: '—',
@@ -195,7 +155,7 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
         key: f.name || f.displayName || String(f.id),
       })) || [],
     badgeType: 'assured',
-  } as CarData;
+  } as any;
 };
 
 const initialFilters: FilterState = {
@@ -225,7 +185,6 @@ export default function CarsListingsPageComponent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
 
-  // Get user data from localStorage to include in query key for proper cache invalidation
   const user = JSON.parse(getStorageItem('user') || '{}');
   const { cityId } = useCity();
   const userCityData = useMemo(() => ({
@@ -235,7 +194,7 @@ export default function CarsListingsPageComponent() {
 
   const queryString = buildQueryStringFromFilters(filters, cityId);
 
-  const { data: listingsResponse, isLoading, error } = useQuery({
+  const { data: listingsResponse, isLoading, error, refetch: refetchListingsData } = useQuery({
     queryKey: ['GET_CAR_LISTINGS_DATA', queryString, userCityData.cityId, userCityData.isCityIncluded],
     queryFn: async () => {
         try {
@@ -259,22 +218,54 @@ export default function CarsListingsPageComponent() {
 
   const errorMessage = error instanceof Error ? error.message : error ? String(error) : null;
 
-  // Map API listings to CarData format
-  const mappedListings: CarData[] = useMemo(() => {
+  const mappedListings: any[] = useMemo(() => {
     if (!listingsResponse || !Array.isArray(listingsResponse)) {
       return [];
     }
     return listingsResponse.map(mapApiListingToCarData);
   }, [listingsResponse]);
 
-  // Handle car card click - navigate to detail page
+  const wishlistedIds = useMemo(() => {
+    if (!listingsResponse || !Array.isArray(listingsResponse)) {
+      return new Set<number>();
+    }
+    const wishlistedSet = new Set<number>();
+    listingsResponse.forEach((item) => {
+      if (item.isWishlisted && item.id) {
+        wishlistedSet.add(item.id);
+      }
+    });
+    return wishlistedSet;
+  }, [listingsResponse]);
+
   const handleCarClick = (carId: string | number) => {
     const car = mappedListings.find((c) => c.id === String(carId) || c.id === carId);
     if (car?.slug) {
       router.push(`/car/${car.slug}`);
     } else if (car?.id) {
-      // Fallback to ID if slug is not available
       router.push(`/car/${car.id}`);
+    }
+  };
+
+  const handleFavoriteClick = async (e: React.MouseEvent, carId: string | number) => {
+    e.stopPropagation();
+    
+    const originalListing = listingsResponse?.find((item: any) => {
+      const mappedId = item.slug ?? String(item.id);
+      return mappedId === String(carId) || String(item.id) === String(carId);
+    });
+
+    if (!originalListing?.id) return;
+
+    try {
+      if (originalListing.isWishlisted) {
+        await delRemoveFromWishlist({ listing_id: originalListing.id });
+      } else {
+        await postAddToWishlist({ listing_id: originalListing.id });
+      }
+      await refetchListingsData();
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
     }
   };
 
@@ -307,6 +298,9 @@ export default function CarsListingsPageComponent() {
             loading={isLoading} 
             error={errorMessage}
             onCarClick={handleCarClick}
+            onFavoriteClick={handleFavoriteClick}
+            wishlistedIds={wishlistedIds}
+            originalListings={listingsResponse}
           />
         </main>
       </div>

@@ -4,19 +4,10 @@ import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Filter, X, ChevronDown, ChevronUp, Fuel, Leaf, BatteryCharging, Droplets, Car, Search } from 'lucide-react';
 import AllIconComponent from '../../../public/AllIconComponent';
-import {
-    fuelTypes,
-    sampleCars,
-    UsedCarSortOption,
-    SafetyRating,
-    FuelType,
-    BodyType,
-    TransmissionType,
-    OwnerType,
-} from '@/lib/carData';
 import { Button } from '@/components/Button/Button';
 import { RangeFilterSection } from './components/RangeFilterSection';
 import { getCarBrands, getCarModelsByBrandId, getSearchModelByBrandOrModel } from '@/utils/auth';
+import { BodyType, FuelType, OwnerType, SafetyRating, TransmissionType, UsedCarSortOption } from '@/lib/data';
 
 export const USED_CAR_MIN_YEAR_FILTER = 2010;
 export const USED_CAR_MAX_YEAR_FILTER = new Date().getFullYear() - 1;
@@ -231,13 +222,9 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
 
     const fuelCounts = useMemo(() => {
         const counts: Record<string, number> = {};
-        sampleCars.forEach(car => {
-            const key = car.fuelType || 'Other';
-            counts[key] = (counts[key] || 0) + 1;
-        });
         return counts;
     }, []);
-
+    
     const fuelIconMap: Record<string, { Icon: any; color: string; bg: string }> = {
         Petrol: { Icon: Fuel, color: 'text-primary-500', bg: 'bg-primary-50' },
         Diesel: { Icon: Fuel, color: 'text-blue-500', bg: 'bg-blue-50' },
@@ -260,18 +247,9 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
 
         return options.map(option => {
             const meta = fuelIconMap[option.label] || { Icon: Fuel, color: 'text-primary-500', bg: 'bg-primary-50' };
-            const countFromData =
-                Array.isArray(fuelTypes) && fuelTypes.length > 0
-                    ? fuelTypes.filter(ft => ft === option.label).length
-                    : 0;
-            return {
-                ...option,
-                count: countFromData || fuelCounts[option.label] || 0,
-                ...meta,
-            };
-        });
-    }, [fuelCounts, fuelTypes]);
-
+            return { ...option, count: fuelCounts[option.label] || 0, ...meta };
+    }, [fuelCounts]);
+    }, [fuelCounts]);
     const classifyBodyType = (name: string): BodyTypeLabel => {
         const lower = name.toLowerCase();
         if (lower.includes('suv') || lower.includes('xuv') || lower.includes('creta') || lower.includes('scorpio')) return 'SUV';
@@ -293,13 +271,6 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
             Sedan: { count: 0, image: bodyTypeImageMap.Sedan },
         };
 
-        sampleCars.forEach(car => {
-            const type = classifyBodyType(car.name) as BodyTypeLabel;
-            if (map[type]) {
-                map[type].count += 1;
-            }
-        });
-
         const bodyTypeValueMap: Record<BodyTypeLabel, BodyType> = {
             Hatchback: BodyType.HATCHBACK,
             SUV: BodyType.SUV,
@@ -319,68 +290,6 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
         Automatic: { iconKey: 'automaticIcon', color: 'text-purple-500', bg: 'bg-purple-50' },
     };
 
-    // const colorOptions = [
-    //     { value: 'White', label: 'White', count: 625, image: '/filter/whiteCar.webp', text: 'text-gray-900' },
-    //     { value: 'Silver', label: 'Silver', count: 205, image: '/filter/silverCar.webp', text: 'text-gray-800' },
-    //     { value: 'Red', label: 'Red', count: 83, image: '/filter/redCar.webp', text: 'text-gray-900' },
-    //     { value: 'Black', label: 'Black', count: 77, image: '/filter/blackCar.webp', text: 'text-gray-900' },
-    //     { value: 'Blue', label: 'Blue', count: 75, image: '/filter/blueCar.webp', text: 'text-gray-900' },
-    //     { value: 'Brown', label: 'Brown', count: 39, image: '/filter/brownCar.webp', text: 'text-gray-900' },
-    //     { value: 'Orange', label: 'Orange', count: 28, image: '/filter/orangeCar.webp', text: 'text-gray-900' },
-    //     { value: 'Green', label: 'Green', count: 18, image: '/filter/greenCar.webp', text: 'text-gray-900' },
-    // ];
-
-    // const featureSections = [
-    //     {
-    //         title: 'Premium Features',
-    //         items: [
-    //             { value: 'infotainment', label: 'Infotainment System', count: 365, icon: 'infotainmentSystemIcon' },
-    //             { value: 'rearAc', label: 'Rear AC', count: 555, icon: 'rearACIcon' },
-    //             { value: 'sunroof', label: 'Sunroof', count: 163, icon: 'sunroofIcon' },
-    //             { value: 'leather', label: 'Leather Upholstery', count: 199, icon: 'leatherUpholsteryIcon' },
-    //             { value: 'alloyWheels', label: 'Alloy Wheels', count: 483, icon: 'alloyWheelsIcon' },
-    //             { value: 'bluetooth', label: 'Bluetooth', count: 755, icon: 'bluetoothIcon' },
-    //         ],
-    //     },
-    //     {
-    //         title: 'Smart Features',
-    //         items: [
-    //             { value: 'carplay', label: 'Carplay', count: 371, icon: 'carPlayIcon' },
-    //             { value: 'parkingAssist', label: 'Parking Assist', count: 740, icon: 'parkingAssistIcon' },
-    //             { value: 'cruiseControl', label: 'Cruise Control', count: 271, icon: 'cruiseControlIcon' },
-    //             { value: 'pushButtonStart', label: 'Push Button Start', count: 309, icon: 'pushButtonStartIcon' },
-    //         ],
-    //     },
-    //     {
-    //         title: 'VIP Features',
-    //         items: [
-    //             { value: 'specialNumber', label: 'Special Number', count: 35, icon: 'specialNumberIcon' },
-    //             { value: 'topModel', label: 'Top Model', count: 305, icon: 'topModelIcon' },
-    //         ],
-    //     },
-    //     {
-    //         title: 'Others',
-    //         items: [
-    //             { value: 'camera360', label: '360 Camera', count: 34, icon: 'cameraIcon' },
-    //             { value: 'ventilatedSeats', label: 'Ventilated Seats', count: 44, icon: 'ventilatedSeatsIcon' },
-    //             { value: 'gps', label: 'GPS Navigation', count: 185, icon: 'gpsNavigationIcon' },
-    //             { value: 'tpms', label: 'TPMS', count: 135, icon: 'tmpsIcon' },
-    //         ],
-    //     },
-    // ];
-
-    // const selectedFeatures = filters.features || [];
-
-    // const toggleFeature = (value: string) => {
-    //     const next = selectedFeatures.includes(value)
-    //         ? selectedFeatures.filter(v => v !== value)
-    //         : [...selectedFeatures, value];
-    //     onFilterChange({
-    //         ...filters,
-    //         features: next,
-    //     });
-    // };
-
     const seatOptions = [
         { value: '4', label: '4 Seater', count: 13, image: '/filter/4Seater.webp' },
         { value: '5', label: '5 Seater', count: 1135, image: '/filter/5Seater.webp' },
@@ -392,10 +301,10 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
 
     const getOwnerLabelFromEnum = (ownerType: OwnerType): string => {
         const ordinalMap: Record<number, string> = {
-            [OwnerType.FIRST]: 'First',
-            [OwnerType.SECOND]: 'Second',
-            [OwnerType.THIRD]: 'Third',
-            [OwnerType.FOURTH]: 'Fourth',
+            [OwnerType.FIRST]: '1st Owner',
+            [OwnerType.SECOND]: '2nd Owner',
+            [OwnerType.THIRD]: '3rd Owner',
+            [OwnerType.FOURTH]: '4th Owner',
         };
         const ordinal = ordinalMap[ownerType] ?? String(ownerType);
         return `${ordinal} owner`;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Camera, Cog, ShipWheel, AirVent, Plug, Star, ChevronDown, ChevronUp, CheckCircle, XCircle, Play, Car, RockingChair, SquareStack, AlertTriangle } from "lucide-react";
+import { Camera, Cog, ShipWheel, AirVent, Plug, Star, ChevronDown, ChevronUp, CheckCircle, XCircle, Play, Car, RockingChair, SquareStack, AlertTriangle, FileText } from "lucide-react";
 import { InspectionImageType } from "@/lib/data";
 import ImagePreview from "@/components/common/ImagePreview";
 
@@ -167,27 +167,12 @@ const InspectionSummary: React.FC<InspectionSummaryProps> = ({ formValues, allFi
           <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)] translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
           <div className="relative flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary-500 to-blue-600 shadow-sm">
-              <Car className="h-3.5 w-3.5 text-white" />
+              <FileText className="h-3.5 w-3.5 text-white" />
             </div>
-            <h3 className="font-bold text-sm text-slate-900">Car Details</h3>
+            <h3 className="font-bold text-sm text-slate-900">Documents</h3>
           </div>
         </div>
         <div className="p-3 space-y-3">
-          {/* Basic Information - Compact Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200/60">
-            <div className="p-2 rounded-lg bg-slate-50/80 border border-slate-200/60">
-              <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Registration Number</p>
-              <p className="text-xs font-bold text-slate-900">{carDetails.registrationNumber}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-slate-50/80 border border-slate-200/60">
-              <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Registration Year</p>
-              <p className="text-xs font-bold text-slate-900">{carDetails.registartionYear}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-slate-50/80 border border-slate-200/60">
-              <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">KM Driven</p>
-              <p className="text-xs font-bold text-slate-900">{typeof carDetails.km_driven === 'number' ? carDetails.km_driven.toLocaleString() : carDetails.km_driven}</p>
-            </div>
-          </div>
 
           {/* Document Images - Compact with smaller images */}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
@@ -337,6 +322,7 @@ const InspectionSummary: React.FC<InspectionSummaryProps> = ({ formValues, allFi
                       const hasImage = image && !isVideoField;
                       const hasVideo = image && isVideoField;
                       const hasAnyData = hasImage || hasVideo || damage || remarks || treadDepth || electricalType;
+                      const isPerfect = damage === "no";
 
                       return (
                         <div
@@ -355,9 +341,11 @@ const InspectionSummary: React.FC<InspectionSummaryProps> = ({ formValues, allFi
                               </p>
                             </div>
                             <div className="space-y-1">
-                              <p className={`text-xs ${hasAnyData ? "text-slate-600" : "text-slate-400"}`}>
-                                <span className="font-medium">Damage:</span> {damage ? damage.toUpperCase() : "Not selected"}
-                              </p>
+                              {!isPerfect && (
+                                <p className={`text-xs ${hasAnyData ? "text-slate-600" : "text-slate-400"}`}>
+                                  <span className="font-medium">Damage:</span> {damage ? damage.toUpperCase() : "Not selected"}
+                                </p>
+                              )}
                               {isTyre && treadDepth && (
                                 <p className="text-xs text-slate-600">
                                   <span className="font-medium">Tread depth:</span> {treadDepth} mm
@@ -381,46 +369,48 @@ const InspectionSummary: React.FC<InspectionSummaryProps> = ({ formValues, allFi
                             </div>
                           </div>
 
-                          {/* Right Side - Image or Video */}
-                          <div className="flex-shrink-0 w-20 h-20 rounded-lg border border-slate-200 bg-slate-50/60 flex items-center justify-center overflow-hidden">
-                            {hasImage ? (
-                              <ImagePreview
-                                src={image}
-                                alt={field.label}
-                                className="w-full h-full object-cover rounded-lg"
-                              />
-                            ) : hasVideo ? (
-                              <div className="w-full h-full rounded-lg relative group overflow-hidden bg-slate-900 cursor-pointer" onClick={(e) => {
-                                e.stopPropagation();
-                                const container = e.currentTarget;
-                                const video = container.querySelector('video') as HTMLVideoElement;
-                                if (video) {
-                                  video.controls = true;
-                                  if (video.requestFullscreen) video.requestFullscreen();
-                                  else if ((video as any).webkitRequestFullscreen) (video as any).webkitRequestFullscreen();
-                                  else if ((video as any).mozRequestFullScreen) (video as any).mozRequestFullScreen();
-                                  else if ((video as any).msRequestFullscreen) (video as any).msRequestFullscreen();
-                                }
-                              }}>
-                                <video
+                          {/* Right Side - Image or Video (Hidden for perfect parts) */}
+                          {!isPerfect && (
+                            <div className="flex-shrink-0 w-20 h-20 rounded-lg border border-slate-200 bg-slate-50/60 flex items-center justify-center overflow-hidden">
+                              {hasImage ? (
+                                <ImagePreview
                                   src={image}
-                                  className="w-full h-full object-contain rounded-lg"
-                                  playsInline preload="metadata"
-                                  muted style={{ objectFit: 'contain' }}
-                                  onLoadedMetadata={(e) => { e.currentTarget.style.objectFit = 'contain'; }}
+                                  alt={field.label}
+                                  className="w-full h-full object-cover rounded-lg"
                                 />
-                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
-                                  <div className="w-6 h-6 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Play className="h-3 w-3 text-white fill-white" />
+                              ) : hasVideo ? (
+                                <div className="w-full h-full rounded-lg relative group overflow-hidden bg-slate-900 cursor-pointer" onClick={(e) => {
+                                  e.stopPropagation();
+                                  const container = e.currentTarget;
+                                  const video = container.querySelector('video') as HTMLVideoElement;
+                                  if (video) {
+                                    video.controls = true;
+                                    if (video.requestFullscreen) video.requestFullscreen();
+                                    else if ((video as any).webkitRequestFullscreen) (video as any).webkitRequestFullscreen();
+                                    else if ((video as any).mozRequestFullScreen) (video as any).mozRequestFullScreen();
+                                    else if ((video as any).msRequestFullscreen) (video as any).msRequestFullscreen();
+                                  }
+                                }}>
+                                  <video
+                                    src={image}
+                                    className="w-full h-full object-contain rounded-lg"
+                                    playsInline preload="metadata"
+                                    muted style={{ objectFit: 'contain' }}
+                                    onLoadedMetadata={(e) => { e.currentTarget.style.objectFit = 'contain'; }}
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center">
+                                    <div className="w-6 h-6 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                                      <Play className="h-3 w-3 text-white fill-white" />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 text-center px-2">
-                                No media
-                              </span>
-                            )}
-                          </div>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 text-center px-2">
+                                  No media
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     };

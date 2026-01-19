@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
-import { CarData } from '@/lib/carData';
 import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import Hero from '@/components/Hero/Hero';
 import { useQuery } from '@tanstack/react-query';
-import { getListingApi } from '@/utils/auth';
+import { getListingApi, postAddToWishlist, delRemoveFromWishlist } from '@/utils/auth';
 import { getStorageItem } from '@/lib/storage';
 
 type ApiImage = {
@@ -63,14 +63,12 @@ type ApiListing = {
 const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Car+image+coming+soon';
 
-const mapApiListingToCarData = (item: ApiListing): CarData => {
-  // Extract primary image from images array
+const mapApiListingToCarData = (item: ApiListing): any => {
   const primaryImage =
     (item.image ??
       item.images?.find((group) => group.images?.length)?.images?.[0]?.imageUrl) ||
     placeholderImage;
 
-  // Map images to detailOptions format
   const detailOptions =
     item.images
       ?.map((group) => ({
@@ -99,7 +97,7 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
       ? `${item.areaName}, ${item.cityName}`
       : item.cityName ?? item.areaName ?? '';
 
-  const base: CarData = {
+  const base: any = {
     id: item.slug ?? String(item.id),
     slug: item.slug,
     name,
@@ -152,10 +150,11 @@ const mapApiListingToCarData = (item: ApiListing): CarData => {
     isWishlisted: item.isWishlisted ?? base.isWishlisted ?? false,
   };
 
-  return enriched as CarData;
+  return enriched as any;
 };
 
 export default function Home() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -182,19 +181,19 @@ export default function Home() {
     if (filters.minPrice) params.append('minPrice', filters.minPrice);
     if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
     if (filters.maxYear) params.append('maxYear', filters.maxYear);
-    
+
     if (userCityData.cityId) {
       params.append('cityId', String(userCityData.cityId));
-      const isCityIncluded = userCityData.isCityIncluded !== null && userCityData.isCityIncluded !== undefined 
-        ? userCityData.isCityIncluded 
+      const isCityIncluded = userCityData.isCityIncluded !== null && userCityData.isCityIncluded !== undefined
+        ? userCityData.isCityIncluded
         : true;
       params.append('isCityIncluded', String(isCityIncluded));
     }
-    
+
     return params.toString();
   }, [searchQuery, filters, userCityData.cityId, userCityData.isCityIncluded]);
 
-  const { data: listingsResponse, isLoading, error } = useQuery({
+  const { data: listingsResponse, isLoading, error, refetch: refetchListings } = useQuery({
     queryKey: ['GET_CAR_LISTINGS', queryParams, userCityData.cityId, userCityData.isCityIncluded],
     queryFn: async () => {
       try {
@@ -214,7 +213,7 @@ export default function Home() {
     enabled: true,
   });
 
-  const cars: CarData[] = useMemo(() => {
+  const cars: any[] = useMemo(() => {
     if (!listingsResponse || !Array.isArray(listingsResponse)) {
       return [];
     }
@@ -260,6 +259,37 @@ export default function Home() {
   };
 
   const activeFiltersCount = Object.values(filters).filter(v => v !== '').length;
+
+  const handleCarClick = (carId: string | number) => {
+    const car = filteredCars.find((c) => c.id === String(carId) || c.id === carId);
+    if (car?.slug) {
+      router.push(`/car/${car.slug}`);
+    } else if (car?.id) {
+      router.push(`/car/${car.id}`);
+    }
+  };
+
+  const handleFavoriteClick = async (e: React.MouseEvent, carId: string | number) => {
+    e.stopPropagation();
+    
+    const originalListing = listingsResponse?.find((item: any) => {
+      const mappedId = item.slug ?? String(item.id);
+      return mappedId === String(carId) || String(item.id) === String(carId);
+    });
+
+    if (!originalListing?.id) return;
+
+    try {
+      if (originalListing.isWishlisted) {
+        await delRemoveFromWishlist({ listing_id: originalListing.id });
+      } else {
+        await postAddToWishlist({ listing_id: originalListing.id });
+      }
+      await refetchListings();
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto pb-6 px-6 pt-2 space-y-6">
@@ -447,7 +477,15 @@ export default function Home() {
       {!isLoading && !error && filteredCars.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCars.map((car) => (
-            <CarCard key={car.id} car={car} />
+            <CarCard
+              key={car.id}
+              car={car}
+              showActions={true}
+              showFavorite={true}
+              isFavorite={car.isWishlisted}
+              onClick={handleCarClick}
+              onFavoriteClick={handleFavoriteClick}
+            />
           ))}
         </div>
       )}

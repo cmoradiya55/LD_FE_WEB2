@@ -1,6 +1,7 @@
 import type React from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 type Category = {
   label: string;
@@ -49,6 +50,9 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
   onTouchMove,
   onTouchEnd,
 }) => {
+  // Prevent body scroll when modal is open
+  useScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
