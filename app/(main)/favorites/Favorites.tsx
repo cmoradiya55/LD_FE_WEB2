@@ -1,15 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Heart, Search, Trash2 } from 'lucide-react';
 import CarCard from '@/components/CarCard/CarCard';
 import { Button } from '@/components/Button/Button';
-import { getWishlist, getWishlistCount, clearWishlist } from '@/utils/auth';
+import { getWishlist, getWishlistCount, clearWishlist, delRemoveFromWishlist, postAddToWishlist } from '@/utils/auth';
 import { toast } from 'react-toastify';
-
-const placeholderImage =
-  'https://via.placeholder.com/640x360.png?text=Saved+car+image';
 
 const formatPrice = (value: number | string | undefined | null) => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -53,7 +50,7 @@ const mapWishlistItem = (item: any) => {
       listing?.image ||
       listing?.images?.[0]?.url ||
       listing?.photos?.[0]?.url ||
-      placeholderImage,
+      undefined,
     ownerType: listing?.ownerType ?? listing?.owner_type ?? listing?.owner ?? '',
     fuelType: listing?.fuelType ?? listing?.fuel_type ?? listing?.fuel ?? '',
     transmissionType:
@@ -68,9 +65,8 @@ const mapWishlistItem = (item: any) => {
 };
 
 const Favorites = () => {
-  const queryClient = useQueryClient();
 
-  const { data: wishlistResponse, isLoading: wishlistLoading } = useQuery({
+  const { data: wishlistResponse, isLoading: wishlistLoading, refetch: refetchWishlist } = useQuery({
     queryKey: ['GET_WISHLIST', 1, 50],
     queryFn: async () => {
       const response = await getWishlist(1, 50);
@@ -86,7 +82,7 @@ const Favorites = () => {
     enabled: true,
   });
 
-  const { data: wishlistCountResponse, isLoading: countLoading } = useQuery({
+  const { data: wishlistCountResponse, isLoading: countLoading, refetch: refetchCount } = useQuery({
     queryKey: ['GET_WISHLIST_COUNT'],
     queryFn: async () => {
       const response = await getWishlistCount();
@@ -101,27 +97,27 @@ const Favorites = () => {
     enabled: true,
   });
 
-  const clearWishlistMutation = useMutation({
-    mutationFn: async () => {
-      return await clearWishlist();
-    },
-    onSuccess: (response) => {
-      if (response?.code === 200) {
-        toast.success('Wishlist cleared successfully');
-        // Invalidate wishlist queries to refresh the data
-        queryClient.invalidateQueries({ queryKey: ['GET_WISHLIST'] });
-        queryClient.invalidateQueries({ queryKey: ['GET_WISHLIST_COUNT'] });
-        // Invalidate listings to refresh wishlist state
-        queryClient.invalidateQueries({ queryKey: ['GET_CAR_LISTINGS'] });
-      } else {
-        toast.error(response?.message || 'Failed to clear wishlist');
-      }
-    },
-    onError: (error) => {
-      console.error('Error clearing wishlist:', error);
-      toast.error('Something went wrong. Please try again.');
-    },
-  });
+  const handleClearWishlist = async () => {
+    const response = await clearWishlist();
+    if (response?.code === 200) {
+      toast.success('Wishlist cleared successfully');
+      refetchWishlist();
+      refetchCount();
+    } else {
+      toast.error(response?.message || 'Failed to clear wishlist');
+    }
+  };
+
+  const handleRemoveFromWishlist = async (listingId: number) => {
+    const response = await delRemoveFromWishlist({ listing_id: listingId });
+    if (response?.code === 200) {
+      toast.success('Removed from favorites');
+      refetchWishlist();
+      refetchCount();
+    } else {
+      toast.error(response?.message || 'Failed to remove from wishlist');
+    }
+  };
 
   const favorites = useMemo(() => {
     if (!wishlistResponse) return [];
@@ -152,6 +148,16 @@ const Favorites = () => {
   );
 
   const isEmpty = !loading && favorites.length === 0;
+
+  const handleFavoriteClick = (e: React.MouseEvent, carId: string | number) => {
+    e.stopPropagation();
+    const listingId = Number(carId);
+    if (isNaN(listingId)) {
+      toast.error('Invalid listing ID');
+      return;
+    }
+    handleRemoveFromWishlist(listingId);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -202,12 +208,11 @@ const Favorites = () => {
             {!loading && !isEmpty && (
               <Button
                 variant="secondary"
-                onClick={() => clearWishlistMutation.mutate()}
-                disabled={clearWishlistMutation.isPending}
+                onClick={handleClearWishlist}
                 className="flex items-center gap-2"
               >
                 <Trash2 className="h-4 w-4" />
-                {clearWishlistMutation.isPending ? 'Clearing...' : 'Clear wishlist'}
+                Clear wishlist
               </Button>
             )}
           </div>
@@ -247,7 +252,13 @@ const Favorites = () => {
         {!loading && !isEmpty && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {favorites.map((car) => (
-              <CarCard key={car.id} car={car} />
+              <CarCard 
+                key={car.id} 
+                car={car} 
+                showFavorite={true}
+                isFavorite={car.isWishlisted}
+                onFavoriteClick={(e) => handleFavoriteClick(e, car.id)}
+              />
             ))}
           </div>
         )}

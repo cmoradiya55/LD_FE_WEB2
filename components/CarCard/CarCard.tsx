@@ -18,7 +18,7 @@ import {
   UserRound,
   FileText,
 } from 'lucide-react';
-import { UsedCarListingStatus } from '@/lib/data';
+import { UsedCarListingStatus, OwnerType } from '@/lib/data';
 
 interface StatusBadgeConfig {
   bg: string;
@@ -113,10 +113,20 @@ const CarCard: React.FC<CarCardProps> = ({
 
   const transmission = car.transmission ?? car.transmissionType ?? '';
 
+  const getOwnerTypeLabel = (ownerType: number): string => {
+    const labels: Record<number, string> = {
+      [OwnerType.FIRST]: '1st Owner',
+      [OwnerType.SECOND]: '2nd Owner',
+      [OwnerType.THIRD]: '3rd Owner',
+      [OwnerType.FOURTH]: '4th Owner',
+    };
+    return labels[ownerType] || `Owner Type ${ownerType}`;
+  };
+
   const owner =
     car.owner ??
     (typeof car.ownerType === 'number'
-      ? `${car.ownerType} Owner`
+      ? getOwnerTypeLabel(car.ownerType)
       : '');
 
   const location =
