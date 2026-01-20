@@ -520,7 +520,7 @@ const SellCarDetails: React.FC = () => {
                     variant="primary"
                     onClick={() => {
                       setShowSuccessModal(false);
-                      router.push('/my-listings');
+                      router.push('/listings');
                     }}
                     className="flex-1 rounded-xl text-sm font-semibold py-3 shadow-md hover:shadow-lg transition-all duration-200"
                   >

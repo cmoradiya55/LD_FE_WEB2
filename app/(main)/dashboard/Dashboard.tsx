@@ -10,13 +10,6 @@ import { Car, Heart, Eye, FileText } from 'lucide-react';
 import { UsedCarListingStatus } from '@/lib/data';
 import InspectionReportModal from '@/app/(main)/profile/my-vehicles/Component/InspectionReportModal';
 
-const convertListingCarToCarData = (listingCar: any) => ({
-  ...listingCar,
-  ownerType: listingCar?.ownerType ?? listingCar?.owner_type,
-  price: listingCar.price, // Keep as number for CarCard to format
-  customerExpectedPrice: listingCar.customerExpectedPrice, // Pass customer expected price
-  views: listingCar.views?.toString(),
-});
 
 const queryOptions = {
   retry: false,
@@ -156,13 +149,12 @@ export default function Dashboard() {
       ) : myListings.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {myListings.map((car: any) => {
-            const carData = convertListingCarToCarData(car);
             const pendingBids = car.bids?.filter((b: any) => b.status === 'pending').length || 0;
             return (
               <div key={car.id} className="space-y-2">
                 <div className="relative border border-gray-200 rounded-xl">
                   <CarCard
-                    car={carData}
+                    car={car}
                     showActions={false}
                     showStatusBadge={true}
                   />
@@ -171,6 +163,7 @@ export default function Dashboard() {
                       <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg cursor-pointer hover:bg-red-600 transition-colors z-50">
                         {pendingBids}
                       </div>
+
                     </Link>
                   )}
                 </div>

@@ -305,6 +305,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
             [OwnerType.SECOND]: '2nd Owner',
             [OwnerType.THIRD]: '3rd Owner',
             [OwnerType.FOURTH]: '4th Owner',
+            [OwnerType.FIFTH]: '5th Owner',
         };
         const ordinal = ordinalMap[ownerType] ?? String(ownerType);
         return `${ordinal} owner`;
@@ -321,6 +322,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
             [OwnerType.SECOND]: 357,
             [OwnerType.THIRD]: 100,
             [OwnerType.FOURTH]: 23,
+            [OwnerType.FIFTH]: 5,
         };
 
         return {
