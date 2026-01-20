@@ -53,6 +53,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
             [OwnerType.SECOND]: '2nd Owner',
             [OwnerType.THIRD]: '3rd Owner',
             [OwnerType.FOURTH]: '4th Owner',
+            [OwnerType.FIFTH]: '5th Owner',
         };
         return ownerTypeMap[owner as OwnerType] || 'N/A';
     };

@@ -83,6 +83,7 @@ export enum OwnerType {
     SECOND = 2,
     THIRD = 3,
     FOURTH = 4,
+    FIFTH = 5,
 }
 
 // 1. All the possible things a user/inspector can upload

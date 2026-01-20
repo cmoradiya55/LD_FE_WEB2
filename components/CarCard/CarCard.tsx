@@ -94,17 +94,6 @@ const CarCard: React.FC<CarCardProps> = ({
   const title = car.name || car.displayName || 'Car';
   const year = car.year ?? car.registrationYear ?? '';
 
-  const priceValue =
-    car.linkDrivePrice ??
-    car.managerSuggestedPrice ??
-    (typeof car.price === 'number' && car.price > 0
-      ? `₹${car.price.toLocaleString('en-IN')}/-`
-      : typeof car.price === 'string' && car.price && car.price !== '0'
-      ? car.price.includes('₹') ? car.price : `₹${Number(car.price).toLocaleString('en-IN')}/-`
-      : car.final_price && typeof car.final_price === 'number' && car.final_price > 0
-      ? `₹${car.final_price.toLocaleString('en-IN')}/-`
-      : '');
-
   const kmsDriven =
     car.kmsDriven ??
     (typeof car.kmDriven === 'number'
@@ -119,6 +108,7 @@ const CarCard: React.FC<CarCardProps> = ({
       [OwnerType.SECOND]: '2nd Owner',
       [OwnerType.THIRD]: '3rd Owner',
       [OwnerType.FOURTH]: '4th Owner',
+      [OwnerType.FIFTH]: '5th Owner',
     };
     return labels[ownerType] || `Owner Type ${ownerType}`;
   };
@@ -148,6 +138,29 @@ const CarCard: React.FC<CarCardProps> = ({
     e.stopPropagation();
     onFavoriteClick?.(e, car.id);
   };
+
+  const getCarPrice = (car: any): string => {
+    console.log("getCarPrice", car);
+    let priceValue = null;
+    if (car.linkDrivePrice) {
+      console.log("linkDrivePrice", car.linkDrivePrice);
+      priceValue = `₹${Number(car.linkDrivePrice).toLocaleString('en-IN')}/-`;
+    } else if (car.managerSuggestedPrice) {
+      console.log("managerSuggestedPrice", car.managerSuggestedPrice);
+      priceValue = `₹${Number(car.managerSuggestedPrice).toLocaleString('en-IN')}/-`;
+    } else if (car.final_price) {
+      console.log('final_price', car.final_price);
+      priceValue = `₹${Number(car.final_price).toLocaleString('en-IN')}/-`;
+    } else if (car.price) {
+      console.log('price', car.price);
+      priceValue = `₹${Number(car.price).toLocaleString('en-IN')}/-`;
+    } else {
+      return 'Price Not Available';
+    }
+    console.log("price value", priceValue);
+
+    return priceValue;
+  }
 
   return (
     <div
@@ -207,29 +220,23 @@ const CarCard: React.FC<CarCardProps> = ({
           </div>
 
           {/* Badge - Assured or Private Seller */}
-          <div className="absolute bottom-0 left-0 z-30">
-            <div className="relative">
-              <Image
-                src="/CarListCurve.svg"
-                alt="CarListCurve"
-                width={180}
-                height={100}
-              />
+          {car.badgeType === 'assured' && (
+            <div className="absolute bottom-0 left-0 z-30">
+              <div className="relative">
+                <Image
+                  src="/CarListCurve.svg"
+                  alt="CarListCurve"
+                  width={180}
+                  height={100}
+                />
+              </div>
+              <div className="absolute bottom-0 left-1 flex items-center gap-1 text-[12px] sm:text-xs font-medium text-gray-700 p-1">
+                <BadgeCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-600 font-bold transition-colors" />
+                <span>LINK DRIVE Assured</span>
+              </div>
             </div>
-            <div className="absolute bottom-0 left-1 flex items-center gap-1 text-[12px] sm:text-xs font-medium text-gray-700 p-1">
-              {car.badgeType === 'assured' ? (
-                <>
-                  <BadgeCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-600 font-bold transition-colors" />
-                  <span>LINK DRIVE Assured</span>
-                </>
-              ) : (
-                <>
-                  <UserRoundCheck className="h-3 w-3 ml-2 sm:h-3.5 sm:w-3.5 text-primary-600 font-bold transition-colors" />
-                  <span>Private Seller</span>
-                </>
-              )}
-            </div>
-          </div>
+          )}
+
         </div>
 
         {/* Car Details */}
@@ -241,7 +248,7 @@ const CarCard: React.FC<CarCardProps> = ({
                 {title}
               </h3>
               <div className="text-sm sm:text-base font-bold text-primary-600 whitespace-nowrap">
-                {priceValue}
+                {getCarPrice(car)}
               </div>
             </div>
             {/* Price Details */}
