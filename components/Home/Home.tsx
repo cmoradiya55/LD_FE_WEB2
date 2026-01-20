@@ -63,95 +63,95 @@ type ApiListing = {
 const placeholderImage =
   'https://via.placeholder.com/640x360.png?text=Car+image+coming+soon';
 
-const mapApiListingToCarData = (item: ApiListing): any => {
-  const primaryImage =
-    (item.image ??
-      item.images?.find((group) => group.images?.length)?.images?.[0]?.imageUrl) ||
-    placeholderImage;
+// const mapApiListingToCarData = (item: ApiListing): any => {
+//   const primaryImage =
+//     (item.image ??
+//       item.images?.find((group) => group.images?.length)?.images?.[0]?.imageUrl) ||
+//     placeholderImage;
 
-  const detailOptions =
-    item.images
-      ?.map((group) => ({
-        label: group.typeName || 'Images',
-        images: (group.images || []).map((img) => img.imageUrl).filter(Boolean),
-      }))
-      .filter((opt) => opt.images.length > 0) || [];
+//   const detailOptions =
+//     item.images
+//       ?.map((group) => ({
+//         label: group.typeName || 'Images',
+//         images: (group.images || []).map((img) => img.imageUrl).filter(Boolean),
+//       }))
+//       .filter((opt) => opt.images.length > 0) || [];
 
-  const name = `${item.displayName}${item.variantName ? ` ${item.variantName}` : ''}`.trim();
-  const year = item.registrationYear ?? new Date().getFullYear();
-  const resolvedPrice =
-    typeof item.final_price === 'number'
-      ? item.final_price
-      : typeof item.price === 'number'
-        ? item.price
-        : null;
+//   const name = `${item.displayName}${item.variantName ? ` ${item.variantName}` : ''}`.trim();
+//   const year = item.registrationYear ?? new Date().getFullYear();
+//   const resolvedPrice =
+//     typeof item.final_price === 'number'
+//       ? item.final_price
+//       : typeof item.price === 'number'
+//         ? item.price
+//         : null;
 
-  const final_price = resolvedPrice;
-  const price =
-    resolvedPrice !== null
-      ? `${resolvedPrice.toLocaleString('en-IN')}`
-      : '0';
+//   const final_price = resolvedPrice;
+//   const price =
+//     resolvedPrice !== null
+//       ? `${resolvedPrice.toLocaleString('en-IN')}`
+//       : '0';
 
-  const areaCityLocation =
-    item.areaName && item.cityName
-      ? `${item.areaName}, ${item.cityName}`
-      : item.cityName ?? item.areaName ?? '';
+//   const areaCityLocation =
+//     item.areaName && item.cityName
+//       ? `${item.areaName}, ${item.cityName}`
+//       : item.cityName ?? item.areaName ?? '';
 
-  const base: any = {
-    id: item.slug ?? String(item.id),
-    slug: item.slug,
-    name,
-    year,
-    price,
-    final_price,
-    image: primaryImage,
-    detailOptions,
-    fuelType: item.fuelType || '—',
-    transmission: item.transmissionType || '—',
-    kmsDriven: item.kmDriven ? `${item.kmDriven.toLocaleString()} km` : '—',
-    location: areaCityLocation || item.rtoCode || '—',
-    owner: item.ownerType ? `Owner Type ${item.ownerType}` : '—',
-    registrationYear: item.registrationYear ? String(item.registrationYear) : String(year),
-    registrationNumber: item.registrationNumber,
-    insurance: '—',
-    seats: item.seatingCapacity ? `${item.seatingCapacity} Seats` : '—',
-    rto: item.rtoCode || areaCityLocation || '—',
-    engineDisplacement: item.displacementCc ? `${item.displacementCc} cc` : '—',
-    yearOfManufacture: item.registrationYear ? String(item.registrationYear) : String(year),
-    mileageKmpl: item.mileageKmpl ?? undefined,
-    displacementCc: item.displacementCc ?? undefined,
-    powerBhp: item.powerBhp ?? undefined,
-    torqueNm: item.torqueNm ?? undefined,
-    numberOfGears: item.numberOfGears ?? undefined,
-    seatingCapacity: item.seatingCapacity ?? undefined,
-    fuelTankCapacityLiters: item.fuelTankCapacityLiters ?? null,
-    featureList:
-      item.features?.map((f) => ({
-        name: f.displayName || f.name,
-        value: f.featureValue === null || typeof f.featureValue === 'undefined' ? null : f.featureValue,
-        key: f.name || f.displayName || String(f.id),
-      })) || [],
-    badgeType: 'assured',
-  };
+//   const base: any = {
+//     id: item.slug ?? String(item.id),
+//     slug: item.slug,
+//     name,
+//     year,
+//     price,
+//     final_price,
+//     image: primaryImage,
+//     detailOptions,
+//     fuelType: item.fuelType || '—',
+//     transmission: item.transmissionType || '—',
+//     kmsDriven: item.kmDriven ? `${item.kmDriven.toLocaleString()} km` : '—',
+//     location: areaCityLocation || item.rtoCode || '—',
+//     owner: item.ownerType ? `Owner Type ${item.ownerType}` : '—',
+//     registrationYear: item.registrationYear ? String(item.registrationYear) : String(year),
+//     registrationNumber: item.registrationNumber,
+//     insurance: '—',
+//     seats: item.seatingCapacity ? `${item.seatingCapacity} Seats` : '—',
+//     rto: item.rtoCode || areaCityLocation || '—',
+//     engineDisplacement: item.displacementCc ? `${item.displacementCc} cc` : '—',
+//     yearOfManufacture: item.registrationYear ? String(item.registrationYear) : String(year),
+//     mileageKmpl: item.mileageKmpl ?? undefined,
+//     displacementCc: item.displacementCc ?? undefined,
+//     powerBhp: item.powerBhp ?? undefined,
+//     torqueNm: item.torqueNm ?? undefined,
+//     numberOfGears: item.numberOfGears ?? undefined,
+//     seatingCapacity: item.seatingCapacity ?? undefined,
+//     fuelTankCapacityLiters: item.fuelTankCapacityLiters ?? null,
+//     featureList:
+//       item.features?.map((f) => ({
+//         name: f.displayName || f.name,
+//         value: f.featureValue === null || typeof f.featureValue === 'undefined' ? null : f.featureValue,
+//         key: f.name || f.displayName || String(f.id),
+//       })) || [],
+//     badgeType: 'assured',
+//   };
 
-  const enriched: any = {
-    ...base,
-    displayName: item.displayName,
-    variantName: item.variantName,
-    ownerType: item.ownerType,
-    areaName: item.areaName,
-    cityName: item.cityName,
-    kmDriven: item.kmDriven ?? undefined,
-    final_price,
-    price: price,
-    fuelType: item.fuelType,
-    transmissionType: item.transmissionType,
-    listingId: item.id,
-    isWishlisted: item.isWishlisted ?? base.isWishlisted ?? false,
-  };
+//   const enriched: any = {
+//     ...base,
+//     displayName: item.displayName,
+//     variantName: item.variantName,
+//     ownerType: item.ownerType,
+//     areaName: item.areaName,
+//     cityName: item.cityName,
+//     kmDriven: item.kmDriven ?? undefined,
+//     final_price,
+//     price: price,
+//     fuelType: item.fuelType,
+//     transmissionType: item.transmissionType,
+//     listingId: item.id,
+//     isWishlisted: item.isWishlisted ?? base.isWishlisted ?? false,
+//   };
 
-  return enriched as any;
-};
+//   return enriched as any;
+// };
 
 export default function Home() {
   const router = useRouter();
@@ -213,40 +213,6 @@ export default function Home() {
     enabled: true,
   });
 
-  const cars: any[] = useMemo(() => {
-    if (!listingsResponse || !Array.isArray(listingsResponse)) {
-      return [];
-    }
-    return listingsResponse.map(mapApiListingToCarData);
-  }, [listingsResponse]);
-
-  const { cities, brands, fuelTypes } = useMemo(() => {
-    const uniqueCities = Array.from(new Set(cars.map(car => car.rto).filter(Boolean))).sort();
-    const uniqueBrands = Array.from(new Set(cars.map(car => car.name.split(' ')[0]).filter(Boolean))).sort();
-    const uniqueFuelTypes = Array.from(new Set(cars.map(car => car.fuelType).filter(Boolean))).sort();
-    return {
-      cities: uniqueCities,
-      brands: uniqueBrands,
-      fuelTypes: uniqueFuelTypes,
-    };
-  }, [cars]);
-
-  const filteredCars = cars.filter((car) => {
-    const matchesSearch =
-      car.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCity = !filters.city || car.location.toLowerCase().includes(filters.city.toLowerCase());
-    const matchesBrand = !filters.brand || car.name.toLowerCase().includes(filters.brand.toLowerCase());
-    const matchesFuel = !filters.fuelType || car.fuelType === filters.fuelType;
-    const carPrice = car.final_price ?? 0;
-    const matchesMinPrice = !filters.minPrice || carPrice >= parseInt(filters.minPrice);
-    const matchesMaxPrice = !filters.maxPrice || carPrice <= parseInt(filters.maxPrice);
-    const matchesYear = !filters.maxYear || car.year <= parseInt(filters.maxYear);
-
-    return matchesSearch && matchesCity && matchesBrand && matchesFuel &&
-      matchesMinPrice && matchesMaxPrice && matchesYear;
-  });
-
   const clearFilters = () => {
     setFilters({
       city: '',
@@ -261,7 +227,7 @@ export default function Home() {
   const activeFiltersCount = Object.values(filters).filter(v => v !== '').length;
 
   const handleCarClick = (carId: string | number) => {
-    const car = filteredCars.find((c) => c.id === String(carId) || c.id === carId);
+    const car = listingsResponse?.find((c: any) => c.id === String(carId) || c.id === carId);
     if (car?.slug) {
       router.push(`/car/${car.slug}`);
     } else if (car?.id) {
@@ -297,7 +263,7 @@ export default function Home() {
       <Hero />
 
       {/* Search Bar */}
-      <div className="card bg-white/95 space-y-4">
+      {/* <div className="card bg-white/95 space-y-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-400 w-5 h-5" />
           <input
@@ -322,7 +288,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Filter Toggle Button */}
         <Button
           onClick={() => setShowFilters(!showFilters)}
           className="w-full sm:w-auto flex items-center justify-center space-x-2 mt-2"
@@ -337,7 +302,6 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* Filters Panel */}
       {showFilters && (
         <div className="mb-4 card animate-slide-up bg-white/90">
           <div className="flex justify-between items-center mb-4">
@@ -450,7 +414,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Loading State */}
       {isLoading && (
@@ -469,14 +433,14 @@ export default function Home() {
       {/* Results Count */}
       {!isLoading && !error && (
         <div className="text-sm text-gray-600">
-          Showing {filteredCars.length} {filteredCars.length === 1 ? 'car' : 'cars'}
+          Showing {listingsResponse?.length ?? 0} {(listingsResponse?.length ?? 0) === 1 ? 'car' : 'cars'}
         </div>
       )}
 
       {/* Car Grid */}
-      {!isLoading && !error && filteredCars.length > 0 && (
+      {!isLoading && !error && (listingsResponse?.length ?? 0) > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredCars.map((car) => (
+          {listingsResponse?.map((car: any) => (
             <CarCard
               key={car.id}
               car={car}
@@ -491,7 +455,7 @@ export default function Home() {
       )}
 
       {/* No Results */}
-      {!isLoading && !error && filteredCars.length === 0 && (
+      {!isLoading && !error && (listingsResponse?.length ?? 0) === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <Search className="w-16 h-16 mx-auto" />
