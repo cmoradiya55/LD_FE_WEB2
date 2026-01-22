@@ -211,6 +211,8 @@ export default function Home() {
     refetchInterval: false,
     refetchOnWindowFocus: false,
     enabled: true,
+    gcTime: 0,
+    staleTime: 0,
   });
 
   const clearFilters = () => {

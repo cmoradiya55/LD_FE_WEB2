@@ -159,24 +159,38 @@ const mapApiListingToCarData = (item: ApiListing): any => {
   } as any;
 };
 
+
+const USED_CAR_MIN_YEAR_FILTER = 2010;
+const USED_CAR_MAX_YEAR_FILTER = new Date().getFullYear() - 1;
+
+export const yearStops = Array.from(
+    { length: USED_CAR_MAX_YEAR_FILTER - USED_CAR_MIN_YEAR_FILTER + 1 },
+    (_, idx) => USED_CAR_MIN_YEAR_FILTER + idx
+);
+
+export const budgetStops = [0, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 1000000, 1200000, 1500000, 2000000, 2500000];
+
+export const kmsStops = [0, 10000, 20000, 30000, 40000, 50000, 75000, 100000, 150000, 200000, 1250000, 150000, 200000, 500000, 10000000];
+
+
 const initialFilters: FilterState = {
   cityId: null,
   isCityIncluded: null,
   status: '',
   sortBy: '',
-  minPrice: '',
-  maxPrice: '',
+  minPrice: budgetStops[0],
+  maxPrice: budgetStops[budgetStops.length - 1],
   brand: '',
   model: '',
   fuelType: [],
   transmissionType: [],
-  minModelYear: '',
-  maxModelYear: '',
+  minModelYear: yearStops[0],
+  maxModelYear: yearStops[yearStops.length - 1],
   location: '',
   ownershipType: [],
   safetyRating: '',
-  minKms: '',
-  maxKms: '',
+  minKms: kmsStops[0],
+  maxKms: kmsStops[kmsStops.length - 1],
   bodyType: [],
   seats: [],
 };
@@ -185,6 +199,7 @@ export default function CarsListingsPageComponent() {
   const router = useRouter();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [debouncedQueryString, setDebouncedQueryString] = useState('');
 
   const user = JSON.parse(getStorageItem('user') || '{}');
   const { cityId } = useCity();
@@ -195,11 +210,22 @@ export default function CarsListingsPageComponent() {
 
   const queryString = buildQueryStringFromFilters(filters, cityId);
 
+  // Debounce queryString changes - API will be called 1 second after user stops changing filters
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedQueryString(queryString);
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [queryString]);
+
   const { data: listingsResponse, isLoading, error, refetch: refetchListingsData } = useQuery({
-    queryKey: ['GET_CAR_LISTINGS_DATA', queryString, userCityData.cityId, userCityData.isCityIncluded],
+    queryKey: ['GET_CAR_LISTINGS_DATA', debouncedQueryString],
     queryFn: async () => {
         try {
-            const response = await getListingApi(queryString);
+            const response = await getListingApi(debouncedQueryString);
             if (response.code === 200) {
                 return response.data;
             }
@@ -212,8 +238,10 @@ export default function CarsListingsPageComponent() {
     retry: false,
     refetchInterval: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
-    enabled: true,
+    refetchOnMount: false,
+    enabled: !!debouncedQueryString,
+    gcTime: 0,
+    staleTime: 0,
   });
 
 
