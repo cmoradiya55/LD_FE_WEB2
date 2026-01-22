@@ -8,9 +8,7 @@ import { Button } from '@/components/Button/Button';
 import { RangeFilterSection } from './components/RangeFilterSection';
 import { getCarBrands, getCarModelsByBrandId, getSearchModelByBrandOrModel } from '@/utils/auth';
 import { BodyType, FuelType, OwnerType, SafetyRating, TransmissionType, UsedCarSortOption } from '@/lib/data';
-
-export const USED_CAR_MIN_YEAR_FILTER = 2010;
-export const USED_CAR_MAX_YEAR_FILTER = new Date().getFullYear() - 1;
+import { budgetStops, kmsStops, yearStops } from './CarsListingsPageComponent';
 
 interface FilterSidebarProps {
     isOpen: boolean;
@@ -24,17 +22,17 @@ export interface FilterState {
     isCityIncluded: boolean | null;
     status: string;
     sortBy?: UsedCarSortOption | string;
-    minPrice: string;
-    maxPrice: string;
+    minPrice: number;
+    maxPrice: number;
     brand: string | string[];
     model: string | string[];
     fuelType: Array<FuelType | string>;
     transmissionType: Array<TransmissionType | string>;
-    minModelYear: string;
-    maxModelYear: string;
+    minModelYear: number;
+    maxModelYear: number;
     location: string;
-    minKms: string;
-    maxKms: string;
+    minKms: number;
+    maxKms: number;
     bodyType?: Array<BodyType | string>;
     color?: string;
     features?: string[];
@@ -45,14 +43,7 @@ export interface FilterState {
     safetyFeatures?: string[];
 }
 
-const budgetStops = [0, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 1000000, 1200000, 1500000, 2000000, 2500000];
 
-const yearStops = Array.from(
-    { length: USED_CAR_MAX_YEAR_FILTER - USED_CAR_MIN_YEAR_FILTER + 1 },
-    (_, idx) => USED_CAR_MIN_YEAR_FILTER + idx
-);
-
-const kmsStops = [0, 10000, 20000, 30000, 40000, 50000, 75000, 100000, 150000, 200000, 1250000, 150000, 200000, 500000, 10000000];
 
 export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange }: FilterSidebarProps) {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -193,18 +184,18 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
             isCityIncluded: null,
             status: '',
             sortBy: '',
-            minPrice: '',
-            maxPrice: '',
+            minPrice: budgetStops[0],
+            maxPrice: budgetStops[budgetStops.length - 1],
             brand: [],
             model: [],
             fuelType: [],
             transmissionType: [],
-            minModelYear: '',
-            maxModelYear: '',
+            minModelYear: yearStops[0],
+            maxModelYear: yearStops[yearStops.length - 1],
             location: '',
             ownershipType: [],
-            minKms: '',
-            maxKms: '',
+            minKms: kmsStops[0],
+            maxKms: kmsStops[kmsStops.length - 1],
             bodyType: [],
             color: '',
             features: [],
@@ -215,7 +206,7 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
         });
     };
 
-    const toNumber = (value: string, fallback: number) => {
+    const toNumber = (value: number, fallback: number) => {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : fallback;
     };
@@ -570,6 +561,8 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
     const kmsMinValue = toNumber(filters.minKms, kmsStops[0]);
     const kmsMaxValue = toNumber(filters.maxKms, kmsStops[kmsStops.length - 1]);
 
+    console.log("budgetMinValue: ", budgetMinValue, " budgetMaxValue: ", budgetMaxValue);
+    
     return (
         <>
             {/* Mobile Overlay */}
@@ -685,15 +678,15 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
                             onChange={(min, max) =>
                                 onFilterChange({
                                     ...filters,
-                                    minPrice: String(min),
-                                    maxPrice: String(max),
+                                    minPrice: min,
+                                    maxPrice: max,
                                 })
                             }
                             onClear={() =>
                                 onFilterChange({
                                     ...filters,
-                                    minPrice: '',
-                                    maxPrice: '',
+                                    minPrice: budgetStops[0],
+                                    maxPrice: budgetStops[budgetStops.length - 1],
                                 })
                             }
                         />
@@ -918,15 +911,15 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
                             onChange={(min, max) =>
                                 onFilterChange({
                                     ...filters,
-                                    minModelYear: String(min),
-                                    maxModelYear: String(max),
+                                    minModelYear: min,
+                                    maxModelYear: max,
                                 })
                             }
                             onClear={() =>
                                 onFilterChange({
                                     ...filters,
-                                    minModelYear: '',
-                                    maxModelYear: '',
+                                    minModelYear: yearStops[0],
+                                    maxModelYear: yearStops[yearStops.length - 1],
                                 })
                             }
                         />
@@ -948,15 +941,15 @@ export default function FilterSidebar({ isOpen, onClose, filters, onFilterChange
                             onChange={(min, max) =>
                                 onFilterChange({
                                     ...filters,
-                                    minKms: String(min),
-                                    maxKms: String(max),
+                                    minKms: min,
+                                    maxKms: max,
                                 })
                             }
                             onClear={() =>
                                 onFilterChange({
                                     ...filters,
-                                    minKms: '',
-                                    maxKms: '',
+                                    minKms: kmsStops[0],
+                                    maxKms: kmsStops[kmsStops.length - 1],
                                 })
                             }
                         />

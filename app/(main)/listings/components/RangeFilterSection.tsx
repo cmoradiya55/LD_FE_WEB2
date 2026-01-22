@@ -37,6 +37,12 @@ export function RangeFilterSection({
   formatValue,
   unitSuffix,
 }: RangeFilterSectionProps) {
+
+  console.log(title, "min : ",  min);
+  console.log(title, "max : ", max);
+  console.log(title, "valueMin : ",  valueMin);
+  console.log(title, "valueMax : ",  valueMax);
+  
   const format = (val: number) => {
     if (formatValue) return formatValue(val);
     return `${val}${unitSuffix ? ` ${unitSuffix}` : ''}`;

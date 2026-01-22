@@ -30,6 +30,8 @@ const MyVehiclesComponent = () => {
         refetchOnWindowFocus: false,
         refetchOnMount: 'always',
         enabled: true,
+        gcTime: 0,
+        staleTime: 0,
     });
 
     const vehicles = vehiclesResponse || [];
@@ -41,7 +43,7 @@ const MyVehiclesComponent = () => {
     const handleOpenReport = async (carId: number) => {
         setSelectedCarId(carId);
         setIsReportOpen(true);
-        
+
         // Fetch the full car detail data
         try {
             const response = await getMyUsedCarDetail(String(carId));
@@ -125,16 +127,16 @@ const MyVehiclesComponent = () => {
                                     showStatusBadge={true}
                                 />
                             </div>
-                            {(car.status >= UsedCarListingStatus.APPROVED_BY_ADMIN ) && (
-                                    <Button
-                                        variant='secondary'
-                                        className='w-full'
-                                        onClick={() => handleOpenReport(car.id)}
-                                    >
-                                        <FileText className='w-4 h-4 mr-2' />
-                                        View Inspection Report
-                                    </Button>
-                                )}
+                            {(car.status >= UsedCarListingStatus.APPROVED_BY_ADMIN) && (
+                                <Button
+                                    variant='secondary'
+                                    className='w-full'
+                                    onClick={() => handleOpenReport(car.id)}
+                                >
+                                    <FileText className='w-4 h-4 mr-2' />
+                                    View Inspection Report
+                                </Button>
+                            )}
                         </div>
                     ))}
                 </div>
