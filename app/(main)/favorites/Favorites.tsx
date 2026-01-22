@@ -80,6 +80,8 @@ const Favorites = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: 'always',
     enabled: true,
+    gcTime: 0,
+    staleTime: 0,
   });
 
   const { data: wishlistCountResponse, isLoading: countLoading, refetch: refetchCount } = useQuery({

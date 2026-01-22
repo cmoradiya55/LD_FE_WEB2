@@ -16,6 +16,8 @@ const queryOptions = {
   refetchInterval: false as const,
   refetchOnWindowFocus: false,
   refetchOnMount: 'always' as const,
+  gcTime: 0,
+  staleTime: 0,
 };
 
 export default function Dashboard() {

@@ -183,6 +183,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
 
     const handleUnlistClick = () => {
         setShowUnlistForm(true);
+        onClose();
     };
 
     const handleUnlistCancel = () => {

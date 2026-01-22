@@ -79,7 +79,7 @@ const AddCardComponent: React.FC = () => {
 
     try {
       const carDetailsRaw = getStorageItem('sellCarDetails');
-      
+
       // Clear all previous selections and start fresh from brand step
       setSelections({});
       setSelectionLabels({});
@@ -346,31 +346,31 @@ const AddCardComponent: React.FC = () => {
     }
   };
 
-  const handleLocationSubmit = () => {
-    const value = locationInput.trim();
-    if (!value) return;
+  // const handleLocationSubmit = () => {
+  //   const value = locationInput.trim();
+  //   if (!value) return;
 
-    setSelections((prev) => {
-      const updated: SelectionState = { ...prev, location: value };
-      sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
-        delete updated[step.id];
-      });
-      return updated;
-    });
+  //   setSelections((prev) => {
+  //     const updated: SelectionState = { ...prev, location: value };
+  //     sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
+  //       delete updated[step.id];
+  //     });
+  //     return updated;
+  //   });
 
-    setSelectionLabels((prev) => {
-      const updated: SelectionLabelState = { ...prev, location: value };
-      sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
-        delete updated[step.id];
-      });
-      return updated;
-    });
+  //   setSelectionLabels((prev) => {
+  //     const updated: SelectionLabelState = { ...prev, location: value };
+  //     sellFlowSteps.slice(currentStepIndex + 1).forEach((step) => {
+  //       delete updated[step.id];
+  //     });
+  //     return updated;
+  //   });
 
-    const nextStep = sellFlowSteps[currentStepIndex + 1];
-    if (nextStep) {
-      setCurrentStepId(nextStep.id);
-    }
-  };
+  //   const nextStep = sellFlowSteps[currentStepIndex + 1];
+  //   if (nextStep) {
+  //     setCurrentStepId(nextStep.id);
+  //   }
+  // };
 
   const selectionCount = Object.values(selections).filter(Boolean).length;
 
@@ -515,12 +515,10 @@ const AddCardComponent: React.FC = () => {
     if (!isAllStepsCompleted()) return;
 
     let uploadedFileKeys: string[] = [];
-    let uploadedFileUrls: string[] = [];
 
     if (uploadedPhotoFiles.length > 0) {
       const fileUploadRes = await postImageUpload(uploadedPhotoFiles);
       uploadedFileKeys = fileUploadRes.data.map((file: any) => file.key);
-      uploadedFileUrls = fileUploadRes.data.map((file: any) => file.keyWithBaseUrl);
     }
 
     if (typeof window !== 'undefined') {
@@ -542,7 +540,6 @@ const AddCardComponent: React.FC = () => {
         variantName: selectionLabels.variant,
         fuelType: selectedVariantMeta?.fuelType,
         transmissionType: selectedVariantMeta?.transmissionType,
-        photoPreviews: uploadedFileUrls,
         photoKeys: uploadedFileKeys,
       };
       setStorageItem('sellCarDetails', JSON.stringify(payload));

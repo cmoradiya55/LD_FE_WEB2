@@ -109,7 +109,6 @@ export const getSearchModelByBrandOrModel = (search: string) => getRequest(`/car
 
 // City APIs
 export const getActiveCities = () => getRequest(`/city/active`);
-export const getPreSignedUrlForImage = (payload:any) => postRequest('/storage/upload-url', payload);
 
 
 
