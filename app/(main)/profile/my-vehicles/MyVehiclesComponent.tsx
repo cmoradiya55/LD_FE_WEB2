@@ -11,7 +11,7 @@ import InspectionReportModal from './Component/InspectionReportModal';
 
 const MyVehiclesComponent = () => {
 
-    const { data: vehiclesResponse, isLoading, error } = useQuery({
+    const { data: vehiclesResponse, isLoading, error, refetch } = useQuery({
         queryKey: ['GET_MY_USED_CAR_LIST'],
         queryFn: async () => {
             try {
@@ -59,6 +59,7 @@ const MyVehiclesComponent = () => {
         setIsReportOpen(false);
         setSelectedCarId(null);
         setSelectedCarData(null);
+        refetch();
     };
 
     return (
