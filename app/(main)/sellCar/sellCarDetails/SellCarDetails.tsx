@@ -292,7 +292,7 @@ const SellCarDetails: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] px-3 py-10 text-slate-900">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto">
         {/* Back Button */}
         <header className="flex items-center">
           <Button

@@ -67,6 +67,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
     const [isUnlisting, setIsUnlisting] = useState(false);
     const [showUnlistForm, setShowUnlistForm] = useState(false);
     const [unlistReason, setUnlistReason] = useState<string>("");
+    const [showPriceUpdateForm, setShowPriceUpdateForm] = useState(false);
 
     const isAdmin = user?.role === "admin" || user?.userType === "admin" || user?.isAdmin === true;
 
@@ -139,6 +140,7 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
 
             if (response?.code === 200) {
                 setOriginalCustomerExpectedPrice(customerExpectedPrice);
+                setShowPriceUpdateForm(false);
                 await refetch();
                 onClose();
             }
@@ -212,6 +214,22 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
         } finally {
             setIsUnlisting(false);
         }
+    };
+
+    const handlePriceUpdateClick = () => {
+        // Set the current customer expected price when opening the form
+        const customerPrice = data?.customerExpectedPrice || data?.customer_expected_price;
+        const customerPriceStr = customerPrice ? String(customerPrice) : "";
+        setCustomerExpectedPrice(customerPriceStr);
+        setOriginalCustomerExpectedPrice(customerPriceStr);
+        setShowPriceUpdateForm(true);
+    };
+
+    const handlePriceUpdateCancel = () => {
+        setShowPriceUpdateForm(false);
+        // Reset to original price
+        const customerPrice = data?.customerExpectedPrice || data?.customer_expected_price;
+        setCustomerExpectedPrice(customerPrice ? String(customerPrice) : "");
     };
 
     const transformInspectionData = (apiData: any) => {
@@ -583,14 +601,17 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                 // If Status code = 800 then show the listed price
                                 if (currentStatus >= UsedCarListingStatus.LISTED) {
                                     const finalPrice = data?.final_price || data?.finalPrice;
-                                    const customerExpectedPrice = data?.customerExpectedPrice || data?.customer_expected_price;
+                                    const customerExpectedPriceData = data?.customerExpectedPrice || data?.customer_expected_price;
 
                                     return (
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             {/* Price Comparison Grid */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                                {/* Customer Expected Price */}
-                                                <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 p-3 shadow-sm hover:shadow-md transition-all duration-200">
+                                                {/* Customer Expected Price Display */}
+                                                <div 
+                                                    onClick={handlePriceUpdateClick}
+                                                    className="relative overflow-hidden rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 p-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:border-blue-300"
+                                                >
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <div className="p-1 rounded-md bg-blue-100">
                                                             <IndianRupee className="h-3 w-3 text-blue-600" />
@@ -600,11 +621,12 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                         </span>
                                                     </div>
                                                     <p className="text-lg font-bold text-blue-700">
-                                                        {customerExpectedPrice
-                                                            ? `₹${Number(customerExpectedPrice).toLocaleString('en-IN')}`
+                                                        {customerExpectedPriceData
+                                                            ? `₹${Number(customerExpectedPriceData).toLocaleString('en-IN')}`
                                                             : <span className="text-gray-400 text-sm">Not Available</span>
                                                         }
                                                     </p>
+                                                    <p className="text-[9px] text-blue-500 mt-1 opacity-70">Click to update</p>
                                                 </div>
 
                                                 {/* Final Price */}
@@ -625,6 +647,59 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* Customer Expected Price Input */}
+                                            {showPriceUpdateForm && (
+                                                <div className="space-y-2.5 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                                                    <div>
+                                                        <label htmlFor="customerExpectedPriceListed" className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                                            Update Customer Expected Price
+                                                        </label>
+                                                        <div className="relative">
+                                                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                                                <span className="text-gray-500 text-sm font-medium">₹</span>
+                                                            </div>
+                                                            <input
+                                                                id="customerExpectedPriceListed"
+                                                                type="text"
+                                                                value={customerExpectedPrice}
+                                                                onChange={handleCustomerExpectedPriceChange}
+                                                                placeholder="Enter new customer expected price"
+                                                                className="w-full pl-7 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400"
+                                                            />
+                                                        </div>
+                                                        {customerExpectedPrice && (
+                                                            <p className="mt-1 text-[10px] text-gray-600">
+                                                                Amount: ₹{parseFloat(customerExpectedPrice || '0').toLocaleString('en-IN')}
+                                                            </p>
+                                                        )}
+                                                        {isPriceUpdated && (
+                                                            <p className="mt-1 text-[10px] text-primary-600 font-medium">
+                                                                Price has been updated
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            onClick={handlePriceUpdateCancel}
+                                                            disabled={isSubmitting}
+                                                            variant="secondary"
+                                                            className="flex items-center gap-1.5 px-4 py-1.5 text-sm"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handleSubmit}
+                                                            disabled={isSubmitting || isUnlisting || !isPriceUpdated}
+                                                            variant="accept"
+                                                            className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
+                                                        >
+                                                            <Save className="h-3.5 w-3.5" />
+                                                            {isSubmitting ? 'Updating...' : 'Update Price'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Unlist Reason Form */}
                                             {showUnlistForm && (
@@ -664,12 +739,12 @@ const InspectionReportModal: React.FC<InspectionReportModalProps> = ({
                                                 </div>
                                             )}
 
-                                            {/* Unlist Button */}
-                                            {!showUnlistForm && data?.status === 800 && (
-                                                <div className="flex items-center justify-end pt-1">
+                                            {/* Action Buttons */}
+                                            {!showUnlistForm && !showPriceUpdateForm && data?.status === 800 && (
+                                                <div className="flex items-center justify-end gap-3 pt-1">
                                                     <Button
                                                         onClick={handleUnlistClick}
-                                                        disabled={isUnlisting}
+                                                        disabled={isUnlisting || isSubmitting}
                                                         variant="reject"
                                                         className="flex items-center gap-1.5 px-6 py-1.5 text-sm"
                                                     >

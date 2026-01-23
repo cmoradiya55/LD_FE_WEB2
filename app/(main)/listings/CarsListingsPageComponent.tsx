@@ -200,6 +200,7 @@ export default function CarsListingsPageComponent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [debouncedQueryString, setDebouncedQueryString] = useState('');
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
   const user = JSON.parse(getStorageItem('user') || '{}');
   const { cityId } = useCity();
@@ -210,10 +211,11 @@ export default function CarsListingsPageComponent() {
 
   const queryString = buildQueryStringFromFilters(filters, cityId);
 
-  // Debounce queryString changes - API will be called 1 second after user stops changing filters
   React.useEffect(() => {
+    setIsDebouncing(true);
     const timeoutId = setTimeout(() => {
       setDebouncedQueryString(queryString);
+      setIsDebouncing(false);
     }, 1000);
 
     return () => {
@@ -324,7 +326,7 @@ export default function CarsListingsPageComponent() {
         <main className="flex-1 min-w-0 rounded-lg">
           <CarsListings 
             listings={mappedListings} 
-            loading={isLoading} 
+            loading={isLoading || isDebouncing} 
             error={errorMessage}
             onCarClick={handleCarClick}
             onFavoriteClick={handleFavoriteClick}
